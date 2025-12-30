@@ -75,12 +75,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               const SizedBox(height: 8),
               // 返回按钮 - 精确还原
               GestureDetector(
@@ -260,7 +262,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 isGoogle: true,
                 onTap: () => _handleSocialLogin('Google'),
               ),
+              const SizedBox(height: 40),
             ],
+            ),
           ),
         ),
       ),

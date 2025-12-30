@@ -244,8 +244,6 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
     return GestureDetector(
       onTap: _unfocusAll,
       behavior: HitTestBehavior.opaque,
@@ -255,12 +253,11 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
         appBar: _buildAppBar(),
         body: Column(
           children: [
-            // Scrollable content
+            // Scrollable content - completely independent from keyboard
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
                 physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -277,8 +274,8 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                 ),
               ),
             ),
-            // Bottom button - hide when keyboard is visible
-            if (bottomInset == 0) _buildBottomButton(),
+            // Bottom button - always visible, keyboard overlays on top
+            _buildBottomButton(),
           ],
         ),
       ),

@@ -20,9 +20,11 @@ class CopyTradeSettingsScreen extends StatefulWidget {
   State<CopyTradeSettingsScreen> createState() => _CopyTradeSettingsScreenState();
 }
 
-class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
+class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with WidgetsBindingObserver {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _positionCountController = TextEditingController();
+  final FocusNode _amountFocus = FocusNode();
+  final FocusNode _positionFocus = FocusNode();
 
   String _selectedWallet = 'Wallet1';
   double _walletBalance = 0;
@@ -60,41 +62,81 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
   bool _autoApprove = true;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _amountController.dispose();
     _positionCountController.dispose();
+    _amountFocus.dispose();
+    _positionFocus.dispose();
     super.dispose();
   }
 
   @override
+  void didChangeMetrics() {
+    // 键盘收起时，强制刷新布局
+    final bottomInset = WidgetsBinding.instance.platformDispatcher.views.first.viewInsets.bottom;
+    if (bottomInset == 0) {
+      // 键盘已收起，触发重建
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  void _unfocusAll() {
+    FocusScope.of(context).unfocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _kBackgroundColor,
-      appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. 跟单钱包地址
-                  _buildSection1(),
-                  // 2. 跟买设置
-                  _buildSection2(),
-                  // 3. 卖出设置
-                  _buildSection3(),
-                  // 过滤设置
-                  _buildFilterSection(),
-                  const SizedBox(height: 100),
-                ],
+    // 获取底部安全区域高度
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomButtonHeight = 50 + 32 + bottomPadding; // button + padding + safe area
+
+    return GestureDetector(
+      onTap: _unfocusAll,
+      child: Scaffold(
+        backgroundColor: _kBackgroundColor,
+        resizeToAvoidBottomInset: true,
+        appBar: _buildAppBar(),
+        body: Stack(
+          children: [
+            // 可滚动内容
+            Positioned.fill(
+              bottom: bottomButtonHeight,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. 跟单钱包地址
+                    _buildSection1(),
+                    // 2. 跟买设置
+                    _buildSection2(),
+                    // 3. 卖出设置
+                    _buildSection3(),
+                    // 过滤设置
+                    _buildFilterSection(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
-          ),
-          // 底部按钮
-          _buildBottomButton(),
-        ],
+            // 底部按钮 - 固定在底部
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildBottomButton(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -244,7 +286,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
           ),
           const SizedBox(height: 12),
           // 数量输入
-          _buildInputField(_amountController, 'Amount', 'BNB'),
+          _buildInputField(_amountController, 'Amount', 'BNB', focusNode: _amountFocus),
           const SizedBox(height: 6),
           Text('Please enter amount', style: TextStyle(fontSize: 12, color: _kErrorRed)),
           const SizedBox(height: 8),
@@ -266,7 +308,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildInputField(_positionCountController, 'Position Count', 'times'),
+          _buildInputField(_positionCountController, 'Position Count', 'times', focusNode: _positionFocus),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -691,7 +733,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
     );
   }
 
-  Widget _buildInputField(TextEditingController controller, String hint, String suffix) {
+  Widget _buildInputField(TextEditingController controller, String hint, String suffix, {FocusNode? focusNode}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(color: _kInputColor, borderRadius: BorderRadius.circular(10)),
@@ -700,7 +742,10 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
           Expanded(
             child: TextField(
               controller: controller,
-              keyboardType: TextInputType.number,
+              focusNode: focusNode,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.done,
+              onEditingComplete: _unfocusAll,
               style: const TextStyle(color: Colors.white, fontSize: 15),
               decoration: InputDecoration(
                 hintText: hint,

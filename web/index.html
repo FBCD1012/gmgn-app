@@ -149,6 +149,18 @@
             wasKeyboardOpen = isKeyboardOpen;
           });
         }
+
+        // window.resize 兜底 - 用户按返回键收起键盘时可能只触发这个
+        var resizeTimer = null;
+        window.addEventListener('resize', function() {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(function() {
+            // 如果当前高度接近初始高度，说明键盘已收起
+            if (window.innerHeight >= fixedHeight * 0.9) {
+              forceResetLayout();
+            }
+          }, 100);
+        });
       }
 
       setHeight(fixedHeight);

@@ -249,35 +249,36 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: _kBackgroundColor,
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         appBar: _buildAppBar(),
-        body: Stack(
-          children: [
-            // Main content - use ListView for stable rendering
-            ListView(
-              controller: _scrollController,
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 100), // Space for button
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
               children: [
-                // 1. Target wallet address
-                _buildSection1(),
-                // 2. Buy settings
-                _buildSection2(),
-                // 3. Sell settings
-                _buildSection3(),
-                // Filter settings
-                _buildFilterSection(),
-                const SizedBox(height: 20),
+                // Scrollable content
+                Expanded(
+                  child: ListView(
+                    controller: _scrollController,
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 16),
+                    children: [
+                      // 1. Target wallet address
+                      _buildSection1(),
+                      // 2. Buy settings
+                      _buildSection2(),
+                      // 3. Sell settings
+                      _buildSection3(),
+                      // Filter settings
+                      _buildFilterSection(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+                // Bottom button - always at bottom
+                _buildBottomButton(),
               ],
-            ),
-            // Bottom button - positioned absolutely
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildBottomButton(),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

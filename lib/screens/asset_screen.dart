@@ -386,27 +386,6 @@ class _AssetScreenState extends State<AssetScreen>
               ),
             );
           }),
-          const Spacer(),
-          // 时间范围选择器
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF252525),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFF333333)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '7d',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.keyboard_arrow_down, size: 14, color: Colors.grey[400]),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -505,12 +484,12 @@ class _AssetScreenState extends State<AssetScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStatRow('7d Trades', '$totalTrades (${buyTrades.length}/${sellTrades.length})', null),
-          _buildStatRow('7d Avg Hold Time', holdings.isNotEmpty ? '3d' : '0s', null),
-          _buildStatRow('7d Total Buy Cost', '${totalBuyCost.toStringAsFixed(3)} BNB', null),
-          _buildStatRow('7d Avg Buy Cost', '${avgBuyCost.toStringAsFixed(4)} BNB', null),
-          _buildStatRow('7d Avg Realized Profit', '+0.0528 BNB', true),
-          _buildStatRow('7d Fees', '${(totalBuyCost * 0.003).toStringAsFixed(4)} BNB', null),
+          _buildStatRow('Trades', '$totalTrades (${buyTrades.length}/${sellTrades.length})', null),
+          _buildStatRow('Avg Hold Time', holdings.isNotEmpty ? '3d' : '0s', null),
+          _buildStatRow('Total Buy Cost', '${totalBuyCost.toStringAsFixed(3)} BNB', null),
+          _buildStatRow('Avg Buy Cost', '${avgBuyCost.toStringAsFixed(4)} BNB', null),
+          _buildStatRow('Avg Realized Profit', '+0.0528 BNB', true),
+          _buildStatRow('Fees', '${(totalBuyCost * 0.003).toStringAsFixed(4)} BNB', null),
           const SizedBox(height: 16),
         ],
       ),

@@ -244,7 +244,6 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Global MediaQuery lock already applied in main.dart
     return GestureDetector(
       onTap: _unfocusAll,
       behavior: HitTestBehavior.opaque,
@@ -252,31 +251,32 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
         backgroundColor: _kBackgroundColor,
         resizeToAvoidBottomInset: false,
         appBar: _buildAppBar(),
-        body: Column(
+        body: Stack(
           children: [
-            // Scrollable content - completely independent from keyboard
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const ClampingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Target wallet address
-                    _buildSection1(),
-                    // 2. Buy settings
-                    _buildSection2(),
-                    // 3. Sell settings
-                    _buildSection3(),
-                    // Filter settings
-                    _buildFilterSection(),
-                    const SizedBox(height: 100),
-                  ],
-                ),
-              ),
+            // Main content - use ListView for stable rendering
+            ListView(
+              controller: _scrollController,
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 100), // Space for button
+              children: [
+                // 1. Target wallet address
+                _buildSection1(),
+                // 2. Buy settings
+                _buildSection2(),
+                // 3. Sell settings
+                _buildSection3(),
+                // Filter settings
+                _buildFilterSection(),
+                const SizedBox(height: 20),
+              ],
             ),
-            // Bottom button - always visible, keyboard overlays on top
-            _buildBottomButton(),
+            // Bottom button - positioned absolutely
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildBottomButton(),
+            ),
           ],
         ),
       ),

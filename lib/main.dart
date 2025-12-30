@@ -71,17 +71,6 @@ class GMGNApp extends StatelessWidget {
         scaffoldBackgroundColor: kBackgroundColor,
         fontFamily: 'SF Pro Display',
       ),
-      builder: (context, child) {
-        // Global MediaQuery lock - keyboard won't affect any layout
-        final originalMediaQuery = MediaQuery.of(context);
-        final fixedMediaQuery = originalMediaQuery.copyWith(
-          viewInsets: EdgeInsets.zero, // Always zero, ignore keyboard
-        );
-        return MediaQuery(
-          data: fixedMediaQuery,
-          child: child!,
-        );
-      },
       home: const MainScreen(),
     );
   }

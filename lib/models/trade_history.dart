@@ -29,14 +29,14 @@ class TradeHistory {
     this.success = true,
   });
 
-  String get typeText => type == TradeType.buy ? '买入' : '卖出';
+  String get typeText => type == TradeType.buy ? 'Buy' : 'Sell';
 
   String get formattedTime {
     final now = DateTime.now();
     final diff = now.difference(createdAt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
-    if (diff.inHours < 24) return '${diff.inHours}小时前';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${createdAt.month}/${createdAt.day}';
   }
 

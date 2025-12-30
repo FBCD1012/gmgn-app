@@ -4,12 +4,13 @@ import '../models/kline.dart';
 import '../models/holder.dart';
 import '../services/mock_api.dart';
 import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
+import '../providers/wallet_state.dart';
 
 const Color _kPrimaryGreen = Color(0xFF00D26A);
 const Color _kRed = Color(0xFFEF4444);
-const Color _kBackgroundColor = Color(0xFF0D0D0D);
+const Color _kBackgroundColor = Color(0xFF000000); // Pure black
 const Color _kCardColor = Color(0xFF1A1A1A);
-const Color _kBorderColor = Color(0xFF333333);
 
 class TokenDetailScreen extends StatefulWidget {
   final String tokenId;
@@ -35,29 +36,27 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
   bool _isLoading = true;
 
   String _selectedInterval = '1d';
-  final List<String> _intervals = ['1秒', '30秒', '1分', '1时', '1日'];
+  final List<String> _intervals = ['1s', '30s', '1m', '1h', '1d'];
   final Map<String, String> _intervalMap = {
-    '1秒': '1s',
-    '30秒': '30s',
-    '1分': '1m',
-    '1时': '1h',
-    '1日': '1d',
+    '1s': '1s',
+    '30s': '30s',
+    '1m': '1m',
+    '1h': '1h',
+    '1d': '1d',
   };
 
   int _selectedTab = 1; // 持有者
-  final List<String> _tabs = ['活动', '持有者(17.1K)', '交易者', '订单', '持仓', '开发者'];
+  final List<String> _tabs = ['Activity', 'Holders(17.1K)', 'Traders', 'Orders', 'Holdings', 'Devs'];
 
   int _selectedOrderType = 0; // 即时
-  final List<String> _orderTypes = ['即时', '市价单', '限价单'];
+  final List<String> _orderTypes = ['Instant', 'Market', 'Limit'];
 
   // 持有者相关
   List<Holder> _holders = [];
   int _selectedHolderFilter = 0;
-  final List<String> _holderFilters = ['全部', 'KOL 35', '已关注', '备注', '开发者', '聪明钱'];
+  final List<String> _holderFilters = ['All', 'KOL 35', 'Following', 'Notes', 'Devs', 'Smart Money'];
 
   // 交易相关
-  double _selectedBuyAmount = 0.01;
-  double _selectedSellPercent = 10;
   bool _isTrading = false;
 
   @override
@@ -74,6 +73,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
     final klineResponse = await _api.getKLineData(
       tokenId: widget.tokenId,
       interval: _intervalMap[_selectedInterval] ?? '1d',
+      limit: 200, // 增加数据量
     );
 
     setState(() {
@@ -92,6 +92,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
     final response = await _api.getKLineData(
       tokenId: widget.tokenId,
       interval: _intervalMap[interval] ?? '1d',
+      limit: 200, // 增加数据量
     );
     if (response.success) {
       setState(() => _klineData = response.data ?? []);
@@ -108,29 +109,37 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
 
   // 执行买入
   Future<void> _executeBuy(double amount) async {
-    final appState = context.read<AppState>();
-    if (!appState.isLoggedIn) {
+    final authState = context.read<AuthState>();
+    if (!authState.isLoggedIn) {
       _showLoginRequired();
       return;
     }
 
     setState(() => _isTrading = true);
 
+    final appState = context.read<AppState>();
+    final walletState = context.read<WalletState>();
     final result = await appState.buyToken(widget.tokenId, amount);
 
+    // 同步更新 WalletState
+    if (result != null && result.success) {
+      walletState.refreshWallet();
+    }
+
+    if (!mounted) return;
     setState(() => _isTrading = false);
 
     if (result != null && result.success) {
-      _showTradeResult(true, amount, result.tokenAmount ?? 0);
+      _showTradeResult(true, amount, result.tokenAmount);
     } else {
-      _showTradeError(result?.message ?? '交易失败');
+      _showTradeError(result?.message ?? 'Trade failed');
     }
   }
 
   // 执行卖出
   Future<void> _executeSell(double percent) async {
-    final appState = context.read<AppState>();
-    if (!appState.isLoggedIn) {
+    final authState = context.read<AuthState>();
+    if (!authState.isLoggedIn) {
       _showLoginRequired();
       return;
     }
@@ -140,21 +149,29 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
 
     setState(() => _isTrading = true);
 
+    final appState = context.read<AppState>();
+    final walletState = context.read<WalletState>();
     final result = await appState.sellToken(widget.tokenId, tokenAmount);
 
+    // 同步更新 WalletState
+    if (result != null && result.success) {
+      walletState.refreshWallet();
+    }
+
+    if (!mounted) return;
     setState(() => _isTrading = false);
 
     if (result != null && result.success) {
       _showTradeResult(false, result.bnbAmount ?? 0, tokenAmount);
     } else {
-      _showTradeError(result?.message ?? '交易失败');
+      _showTradeError(result?.message ?? 'Trade failed');
     }
   }
 
   void _showLoginRequired() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('请先登录'),
+        content: Text('Please login first'),
         backgroundColor: _kRed,
       ),
     );
@@ -169,7 +186,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
           children: [
             Icon(Icons.check_circle, color: _kPrimaryGreen, size: 28),
             const SizedBox(width: 8),
-            Text(isBuy ? '买入成功' : '卖出成功', style: const TextStyle(color: Colors.white)),
+            Text(isBuy ? 'Buy Success' : 'Sell Success', style: const TextStyle(color: Colors.white)),
           ],
         ),
         content: Column(
@@ -178,8 +195,8 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
           children: [
             Text(
               isBuy
-                ? '已花费 $bnbAmount BNB 买入 ${tokenAmount.toStringAsFixed(2)} ${_getSymbol()}'
-                : '已卖出 ${tokenAmount.toStringAsFixed(2)} ${_getSymbol()} 获得 ${bnbAmount.toStringAsFixed(4)} BNB',
+                ? 'Spent $bnbAmount BNB to buy ${tokenAmount.toStringAsFixed(2)} ${_getSymbol()}'
+                : 'Sold ${tokenAmount.toStringAsFixed(2)} ${_getSymbol()} for ${bnbAmount.toStringAsFixed(4)} BNB',
               style: TextStyle(color: Colors.grey[300]),
             ),
           ],
@@ -187,7 +204,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('确定', style: TextStyle(color: _kPrimaryGreen)),
+            child: const Text('OK', style: TextStyle(color: _kPrimaryGreen)),
           ),
         ],
       ),
@@ -209,7 +226,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: _kCardColor,
         title: Text(
-          isBuy ? '确认买入' : '确认卖出',
+          isBuy ? 'Confirm Buy' : 'Confirm Sell',
           style: const TextStyle(color: Colors.white),
         ),
         content: Column(
@@ -218,14 +235,14 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
           children: [
             Text(
               isBuy
-                ? '确定要花费 $amount BNB 买入 ${_getSymbol()} 吗？'
-                : '确定要卖出 ${amount.toStringAsFixed(0)}% 的 ${_getSymbol()} 持仓吗？',
+                ? 'Spend $amount BNB to buy ${_getSymbol()}?'
+                : 'Sell ${amount.toStringAsFixed(0)}% of ${_getSymbol()} holdings?',
               style: TextStyle(color: Colors.grey[300]),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Text('预估价格: ', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                Text('Est. Price: ', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
                 Text(
                   _tokenDetail?.formattedPrice ?? '\$0.00',
                   style: const TextStyle(fontSize: 13, color: Colors.white),
@@ -237,7 +254,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('取消', style: TextStyle(color: Colors.grey[400])),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
           ),
           TextButton(
             onPressed: () {
@@ -249,7 +266,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
               }
             },
             child: Text(
-              isBuy ? '确认买入' : '确认卖出',
+              isBuy ? 'Confirm' : 'Confirm',
               style: TextStyle(color: isBuy ? _kPrimaryGreen : _kRed),
             ),
           ),
@@ -357,7 +374,6 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
   }
 
   Widget _buildPriceSection() {
-    final price = _tokenDetail?.price ?? 0.00011028;
     final change = _tokenDetail?.priceChange24h ?? -2.02;
     final isNegative = change < 0;
 
@@ -368,7 +384,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
         children: [
           Row(
             children: [
-              Text('价格', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              Text('Price', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
               const SizedBox(width: 4),
               Text('5', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
             ],
@@ -385,7 +401,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (isNegative ? _kRed : _kPrimaryGreen).withOpacity(0.2),
+                  color: (isNegative ? _kRed : _kPrimaryGreen).withAlpha(51),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
@@ -424,12 +440,12 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _buildPoolInfoItem('池信息', '\$119.01K', Colors.white),
+          _buildPoolInfoItem('Pool', '\$119.01K', Colors.white),
           _buildPoolInfoItem('Top10', '0.1%', _kPrimaryGreen),
-          _buildPoolInfoItem('持有者', _tokenDetail?.formattedHolders ?? '29.32K', Colors.white),
-          _buildPoolInfoItem('Dex付费', '0', Colors.white),
-          _buildPoolInfoItem('老鼠仓', '0%', Colors.white),
-          _buildPoolInfoItem('Dev持仓', '0%', Colors.white),
+          _buildPoolInfoItem('Holders', _tokenDetail?.formattedHolders ?? '29.32K', Colors.white),
+          _buildPoolInfoItem('Dex Paid', '0', Colors.white),
+          _buildPoolInfoItem('Insider', '0%', Colors.white),
+          _buildPoolInfoItem('Dev Hold', '0%', Colors.white),
         ],
       ),
     );
@@ -482,10 +498,10 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
 
   Widget _buildKLineChart() {
     return Container(
-      height: 280,
+      height: 320,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: CustomPaint(
-        size: const Size(double.infinity, 280),
+        size: const Size(double.infinity, 320),
         painter: KLineChartPainter(data: _klineData),
       ),
     );
@@ -619,11 +635,11 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
       children: [
         Row(
           children: [
-            const Text('买入', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _kPrimaryGreen)),
+            const Text('Buy', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _kPrimaryGreen)),
             const SizedBox(width: 4),
             Icon(Icons.edit, size: 14, color: _kPrimaryGreen),
             const Spacer(),
-            Text('余额', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            Text('Balance', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
             const SizedBox(width: 4),
             Container(
               width: 14, height: 14,
@@ -655,15 +671,15 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
         const SizedBox(height: 6),
         Row(
           children: [
-            Text('⚡ 自动', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            Text('⚡ Auto', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             const SizedBox(width: 8),
             Text('⛽ 0.12', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             const SizedBox(width: 8),
-            Text('🛡 开', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            Text('🛡 On', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             const SizedBox(width: 8),
-            Text('👤 开', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            Text('👤 On', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             const Spacer(),
-            Text('TP/SL 未设置', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+            Text('TP/SL Not Set', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
           ],
         ),
       ],
@@ -676,11 +692,11 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
       children: [
         Row(
           children: [
-            const Text('卖出', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _kRed)),
+            const Text('Sell', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _kRed)),
             const SizedBox(width: 4),
             Icon(Icons.edit, size: 14, color: _kRed),
             const Spacer(),
-            Text('余额', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            Text('Balance', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
             const Text(' 0 XAI ', style: TextStyle(fontSize: 12, color: Colors.white)),
             Text('(', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
             Container(
@@ -706,11 +722,11 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
         const SizedBox(height: 6),
         Row(
           children: [
-            Text('⚡ 自动', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            Text('⚡ Auto', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             const SizedBox(width: 8),
             Text('⛽ 0.12', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             const SizedBox(width: 8),
-            Text('🛡 开', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            Text('🛡 On', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
           ],
         ),
       ],
@@ -724,9 +740,9 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
+            color: color.withAlpha(38),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withAlpha(77)),
           ),
           child: Center(
             child: _isTrading
@@ -800,9 +816,9 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
             children: [
               _buildStatItem('Top10 ⇋', '79.45%', null, showBubble: true),
               const SizedBox(width: 24),
-              _buildStatItem('人均持币金额', '\$399.18', null, showChart: true),
+              _buildStatItem('Avg Holdings', '\$399.18', null, showChart: true),
               const SizedBox(width: 24),
-              _buildStatItem('钓鱼钱包', '94.97%', null),
+              _buildStatItem('Phishing', '94.97%', null),
             ],
           ),
           const SizedBox(height: 16),
@@ -813,7 +829,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('TOP100平均买价', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                    Text('TOP100 Avg Buy', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                     const SizedBox(height: 2),
                     Row(
                       children: [
@@ -828,7 +844,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('TOP100平均卖价', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                    Text('TOP100 Avg Sell', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                     const SizedBox(height: 2),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -866,7 +882,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
                   children: [
                     const Icon(Icons.bubble_chart, size: 12, color: Colors.white),
                     const SizedBox(width: 2),
-                    Text('气泡图', style: TextStyle(fontSize: 10, color: Colors.grey[400])),
+                    Text('Bubble', style: TextStyle(fontSize: 10, color: Colors.grey[400])),
                   ],
                 ),
               ),
@@ -898,7 +914,7 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
             flex: 2,
             child: Row(
               children: [
-                Text('持有人 ▼', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                Text('Holder ▼', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                 const SizedBox(width: 6),
                 Text('USD ₿', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
               ],
@@ -907,12 +923,12 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
           // 持仓占比
           Expanded(
             flex: 1,
-            child: Text('持仓占比 ▼', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            child: Text('Holdings ▼', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
           ),
           // 总利润
           SizedBox(
             width: 80,
-            child: Text('总利润 ▼ USD', style: TextStyle(fontSize: 11, color: Colors.grey[500]), textAlign: TextAlign.right),
+            child: Text('Profit ▼ USD', style: TextStyle(fontSize: 11, color: Colors.grey[500]), textAlign: TextAlign.right),
           ),
         ],
       ),
@@ -1084,9 +1100,42 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
   }
 }
 
-// K线图绑制器
+// K线图绘制器 - 优化版本，缓存 Paint 对象
 class KLineChartPainter extends CustomPainter {
   final List<KLineData> data;
+
+  // 缓存 Paint 对象避免每帧重建
+  static final Paint _gridPaint = Paint()
+    ..color = const Color(0xFF262626)
+    ..strokeWidth = 0.5;
+
+  static final Paint _greenPaint = Paint()
+    ..color = const Color(0xFF00D26A)
+    ..style = PaintingStyle.fill;
+
+  static final Paint _redPaint = Paint()
+    ..color = const Color(0xFFEF4444)
+    ..style = PaintingStyle.fill;
+
+  static final Paint _greenWickPaint = Paint()
+    ..color = const Color(0xFF00D26A)
+    ..strokeWidth = 1.5;
+
+  static final Paint _redWickPaint = Paint()
+    ..color = const Color(0xFFEF4444)
+    ..strokeWidth = 1.5;
+
+  static final Paint _greenVolumePaint = Paint()
+    ..color = const Color(0xFF00D26A).withAlpha(153)
+    ..style = PaintingStyle.fill;
+
+  static final Paint _redVolumePaint = Paint()
+    ..color = const Color(0xFFEF4444).withAlpha(153)
+    ..style = PaintingStyle.fill;
+
+  static final Paint _pricePaint = Paint()
+    ..color = const Color(0xFF00D26A)
+    ..strokeWidth = 1;
 
   KLineChartPainter({required this.data});
 
@@ -1094,85 +1143,107 @@ class KLineChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (data.isEmpty) return;
 
-    final double candleWidth = size.width / data.length * 0.7;
-    final double spacing = size.width / data.length;
+    // K线区域占70%，成交量区域占30%
+    final double klineHeight = size.height * 0.7;
+    final double volumeHeight = size.height * 0.25;
+
+    // 计算K线宽度
+    final int candleCount = data.length;
+    double totalWidth = (size.width / candleCount).clamp(6.0, 15.0);
+
+    final int maxCandles = (size.width / totalWidth).floor();
+    final displayData = data.length > maxCandles
+        ? data.sublist(data.length - maxCandles)
+        : data;
+
+    final double actualTotalWidth = size.width / displayData.length;
+    final double actualCandleWidth = actualTotalWidth * 0.7;
 
     // 计算价格范围
-    double minPrice = data.map((d) => d.low).reduce((a, b) => a < b ? a : b);
-    double maxPrice = data.map((d) => d.high).reduce((a, b) => a > b ? a : b);
-    double priceRange = maxPrice - minPrice;
-    if (priceRange == 0) priceRange = 1;
+    double minPrice = double.infinity;
+    double maxPrice = double.negativeInfinity;
+    double maxVolume = 0;
 
-    // 绘制网格线
-    final gridPaint = Paint()
-      ..color = const Color(0xFF333333)
-      ..strokeWidth = 0.5;
-
-    for (int i = 0; i <= 4; i++) {
-      double y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    for (final d in displayData) {
+      if (d.low < minPrice) minPrice = d.low;
+      if (d.high > maxPrice) maxPrice = d.high;
+      if (d.volume > maxVolume) maxVolume = d.volume;
     }
 
+    double priceRange = maxPrice - minPrice;
+    if (priceRange == 0) priceRange = 1;
+    final double pricePadding = priceRange * 0.05;
+    minPrice -= pricePadding;
+    maxPrice += pricePadding;
+    priceRange = maxPrice - minPrice;
+    if (maxVolume == 0) maxVolume = 1;
+
+    // 绘制网格线
+    for (int i = 0; i <= 4; i++) {
+      double y = klineHeight * i / 4;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), _gridPaint);
+    }
+    canvas.drawLine(Offset(0, klineHeight + 5), Offset(size.width, klineHeight + 5), _gridPaint);
+
     // 绘制K线
-    for (int i = 0; i < data.length; i++) {
-      final kline = data[i];
-      final x = i * spacing + spacing / 2;
+    for (int i = 0; i < displayData.length; i++) {
+      final kline = displayData[i];
+      final x = i * actualTotalWidth + actualTotalWidth / 2;
 
-      // 计算Y坐标
-      double openY = size.height - ((kline.open - minPrice) / priceRange * size.height);
-      double closeY = size.height - ((kline.close - minPrice) / priceRange * size.height);
-      double highY = size.height - ((kline.high - minPrice) / priceRange * size.height);
-      double lowY = size.height - ((kline.low - minPrice) / priceRange * size.height);
+      final double openY = klineHeight - ((kline.open - minPrice) / priceRange * klineHeight);
+      final double closeY = klineHeight - ((kline.close - minPrice) / priceRange * klineHeight);
+      final double highY = klineHeight - ((kline.high - minPrice) / priceRange * klineHeight);
+      final double lowY = klineHeight - ((kline.low - minPrice) / priceRange * klineHeight);
 
-      final color = kline.isUp ? const Color(0xFF00D26A) : const Color(0xFFEF4444);
+      final bool isUp = kline.isUp;
 
       // 绘制影线
-      final wickPaint = Paint()
-        ..color = color
-        ..strokeWidth = 1;
-      canvas.drawLine(Offset(x, highY), Offset(x, lowY), wickPaint);
+      canvas.drawLine(Offset(x, highY), Offset(x, lowY), isUp ? _greenWickPaint : _redWickPaint);
 
-      // 绘制实体
-      final bodyPaint = Paint()
-        ..color = color
-        ..style = PaintingStyle.fill;
-
+      // 绘制K线实体
       double top = openY < closeY ? openY : closeY;
-      double bottom = openY > closeY ? openY : closeY;
-      double bodyHeight = (bottom - top).abs();
-      if (bodyHeight < 1) bodyHeight = 1;
+      double bodyHeight = (openY - closeY).abs();
+      if (bodyHeight < 2) bodyHeight = 2;
 
       canvas.drawRect(
-        Rect.fromLTWH(x - candleWidth / 2, top, candleWidth, bodyHeight),
-        bodyPaint,
+        Rect.fromLTWH(x - actualCandleWidth / 2, top, actualCandleWidth, bodyHeight),
+        isUp ? _greenPaint : _redPaint,
+      );
+
+      // 绘制成交量柱
+      final volumeBarHeight = (kline.volume / maxVolume) * volumeHeight;
+      canvas.drawRect(
+        Rect.fromLTWH(x - actualCandleWidth / 2, size.height - volumeBarHeight, actualCandleWidth, volumeBarHeight),
+        isUp ? _greenVolumePaint : _redVolumePaint,
       );
     }
 
-    // 绘制当前价格线
-    if (data.isNotEmpty) {
-      final lastPrice = data.last.close;
-      final lastY = size.height - ((lastPrice - minPrice) / priceRange * size.height);
-
-      final pricePaint = Paint()
-        ..color = const Color(0xFFEF4444)
-        ..strokeWidth = 1
-        ..style = PaintingStyle.stroke;
+    // 绘制当前价格虚线
+    if (displayData.isNotEmpty) {
+      final lastPrice = displayData.last.close;
+      final lastY = klineHeight - ((lastPrice - minPrice) / priceRange * klineHeight);
 
       // 虚线
-      double dashWidth = 5;
-      double dashSpace = 3;
-      double startX = 0;
-      while (startX < size.width) {
-        canvas.drawLine(
-          Offset(startX, lastY),
-          Offset(startX + dashWidth, lastY),
-          pricePaint,
-        );
-        startX += dashWidth + dashSpace;
+      const double dashWidth = 4;
+      const double dashSpace = 3;
+      double drawX = 0;
+      while (drawX < size.width) {
+        canvas.drawLine(Offset(drawX, lastY), Offset(drawX + dashWidth, lastY), _pricePaint);
+        drawX += dashWidth + dashSpace;
       }
+
+      // 价格标签
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(size.width - 65, lastY - 10, 60, 20), const Radius.circular(3)),
+        _greenPaint,
+      );
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant KLineChartPainter oldDelegate) {
+    // 只有数据变化时才重绘
+    return data.length != oldDelegate.data.length ||
+        (data.isNotEmpty && oldDelegate.data.isNotEmpty && data.last.close != oldDelegate.data.last.close);
+  }
 }

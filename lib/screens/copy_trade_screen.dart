@@ -2,21 +2,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/app_state.dart';
+import '../providers/trader_state.dart';
+import '../providers/wallet_state.dart';
 import '../models/trader.dart';
 import '../models/copy_trade.dart';
 import '../widgets/deposit_sheet.dart';
+import '../widgets/copy_trade/copy_trade_widgets.dart';
 import 'trader_detail_screen.dart';
 
 // 颜色常量
 const Color _kPrimaryGreen = Color(0xFF00D26A);
 const Color _kOrange = Color(0xFFF97316);
-const Color _kBackgroundColor = Color(0xFF0D0D0D);
+const Color _kBackgroundColor = Color(0xFF000000); // Pure black
 const Color _kCardColor = Color(0xFF1A1A1A);
 const Color _kBorderColor = Color(0xFF333333);
-const Color _kGoldColor = Color(0xFFD4AF37);
-const Color _kSilverColor = Color(0xFF8A8A8A);
-const Color _kBronzeColor = Color(0xFFCD7F32);
 const Color _kCyan = Color(0xFF5CE1D6);
 
 class CopyTradeScreen extends StatefulWidget {
@@ -27,7 +28,9 @@ class CopyTradeScreen extends StatefulWidget {
 }
 
 class _CopyTradeScreenState extends State<CopyTradeScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   late TabController _tabController;
   Timer? _activityTimer;
 
@@ -43,13 +46,9 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
 
   // 关注 filters
   int _followSubTab = 0; // 全部, 默认(0)
-  int _followTimeRange = 2; // 30D
 
-  // 备注 filters
-  int _noteTimeRange = 2; // 30D
-
-  final List<String> _mainTabs = ['钱包跟单', '牛人榜', '活动', '关注', '备注'];
-  final List<String> _rankSubTabs = ['热门榜', '全部', 'KOL', '聪明钱', '内盘聪明钱', '新'];
+  final List<String> _mainTabs = ['Copy Trade', 'Rankings', 'Activity', 'Following', 'Notes'];
+  final List<String> _rankSubTabs = ['Hot', 'All', 'KOL', 'Smart Money', 'Insider', 'New'];
   final List<String> _timeRanges = ['1D', '7D', '30D'];
 
   @override
@@ -57,14 +56,17 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
     super.initState();
     _tabController = TabController(length: _mainTabs.length, vsync: this);
     _tabController.addListener(() {
-      setState(() {});
-      // 切换到活动 Tab 时清除未读数
-      if (_tabController.index == 2) {
-        context.read<AppState>().clearUnreadActivityCount();
+      // 只在 tab 切换完成时重建，避免动画期间多次 setState
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+        // 切换到活动 Tab 时清除未读数
+        if (_tabController.index == 2) {
+          context.read<AppState>().clearUnreadActivityCount();
+        }
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppState>().loadTraders();
+      context.read<TraderState>().loadTraders();
       // 启动活动推送定时器 - 每3秒推送一条
       _startActivityTimer();
     });
@@ -87,49 +89,56 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppState>(
-      builder: (context, appState, child) {
-        final traders = appState.traders;
-        final isLoading = appState.isLoadingTraders;
-        final balance = appState.totalBalance;
-
-        return Scaffold(
-          backgroundColor: _kBackgroundColor,
-          body: SafeArea(
-            child: Stack(
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    return Scaffold(
+      backgroundColor: _kBackgroundColor,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
               children: [
-                Column(
-                  children: [
-                    // Main Tab Bar
-                    _buildMainTabBar(),
-                    // Content based on selected tab
-                    Expanded(
-                      child: isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(color: _kCyan),
-                            )
-                          : _buildTabContent(traders),
+                // Main Tab Bar - 独立 Selector 监听 unreadActivityCount
+                _buildMainTabBar(),
+                // Content - 使用 Selector 只监听 traders 和 isLoading
+                Expanded(
+                  child: Selector<TraderState, ({List<Trader> traders, bool isLoading})>(
+                    selector: (_, state) => (
+                      traders: state.traders,
+                      isLoading: state.isLoading,
                     ),
-                  ],
-                ),
-                // 底部充值提示横幅
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: _buildDepositBanner(balance),
+                    builder: (context, data, child) {
+                      if (data.isLoading) {
+                        return const Center(
+                          child: CircularProgressIndicator(color: _kCyan),
+                        );
+                      }
+                      return _buildTabContent(data.traders);
+                    },
+                  ),
                 ),
               ],
             ),
-          ),
-        );
-      },
+            // 底部充值提示横幅 - 独立 Selector 监听 totalBalance
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Selector<WalletState, double>(
+                selector: (_, state) => state.totalBalance,
+                builder: (context, balance, child) => _buildDepositBanner(balance),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildMainTabBar() {
-    return Consumer<AppState>(
-      builder: (context, appState, child) {
+    // 使用 Selector 只监听 unreadActivityCount 变化
+    return Selector<AppState, int>(
+      selector: (_, state) => state.unreadActivityCount,
+      builder: (context, unreadCount, child) {
         return Container(
           height: 44,
           decoration: const BoxDecoration(
@@ -153,7 +162,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               final index = entry.key;
               final tab = entry.value;
               // 活动 tab (index 2) 显示小红心徽章
-              if (index == 2 && appState.unreadActivityCount > 0) {
+              if (index == 2 && unreadCount > 0) {
                 return Tab(
                   child: Stack(
                     clipBehavior: Clip.none,
@@ -171,9 +180,9 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                           constraints: const BoxConstraints(minWidth: 18, minHeight: 16),
                           child: Center(
                             child: Text(
-                              appState.unreadActivityCount > 99
+                              unreadCount > 99
                                   ? '99+'
-                                  : '${appState.unreadActivityCount}',
+                                  : '$unreadCount',
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: Colors.white,
@@ -214,11 +223,14 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
 
   // ==================== 钱包跟单 Tab ====================
   Widget _buildWalletCopyTab() {
-    return Consumer<AppState>(
-      builder: (context, appState, child) {
-        final currentTrades = _walletSubTab == 0
-            ? appState.activeCopyTrades
-            : appState.historyCopyTrades;
+    // 使用 Selector 只监听 copyTrades 变化
+    return Selector<AppState, ({List<CopyTrade> active, List<CopyTrade> history})>(
+      selector: (_, state) => (
+        active: state.activeCopyTrades,
+        history: state.historyCopyTrades,
+      ),
+      builder: (context, trades, child) {
+        final currentTrades = _walletSubTab == 0 ? trades.active : trades.history;
 
         return Column(
           children: [
@@ -228,9 +240,9 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  _buildWalletSubTab('当前跟单', 0),
+                  _buildWalletSubTab('Active', 0),
                   const SizedBox(width: 8),
-                  _buildWalletSubTab('历史跟单', 1),
+                  _buildWalletSubTab('History', 1),
                   const SizedBox(width: 8),
                   // 粉色小鸟图标
                   Container(
@@ -260,7 +272,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                           Icon(Icons.add, size: 16, color: Colors.grey[400]),
                           const SizedBox(width: 4),
                           Text(
-                            '新建',
+                            'New',
                             style: TextStyle(fontSize: 13, color: Colors.grey[400]),
                           ),
                         ],
@@ -274,8 +286,8 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
             Expanded(
               child: currentTrades.isEmpty
                   ? _buildEmptyState(
-                      _walletSubTab == 0 ? '暂无跟单' : '暂无历史跟单',
-                      '发现顶级牛人钱包',
+                      _walletSubTab == 0 ? 'No active copy trades' : 'No history',
+                      'Discover top traders',
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -286,7 +298,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Center(
                               child: Text(
-                                '到底了',
+                                'End of list',
                                 style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                               ),
                             ),
@@ -329,10 +341,10 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                 child: trade.traderAvatar != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          trade.traderAvatar!,
+                        child: CachedNetworkImage(
+                          imageUrl: trade.traderAvatar!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Center(
+                          errorWidget: (_, __, ___) => Center(
                             child: Text(
                               trade.traderAddress.substring(2, 4).toUpperCase(),
                               style: const TextStyle(
@@ -418,7 +430,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF0D0D0D),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -431,7 +443,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '跟单金额',
+                            'Amount',
                             style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                           ),
                           const SizedBox(height: 2),
@@ -452,7 +464,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '加仓次数',
+                            'Add Position',
                             style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                           ),
                           const SizedBox(height: 2),
@@ -469,7 +481,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '自动跟卖',
+                            'Auto Sell',
                             style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                           ),
                           const SizedBox(height: 2),
@@ -477,12 +489,12 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: trade.autoFollowSell
-                                  ? _kPrimaryGreen.withOpacity(0.2)
-                                  : Colors.grey.withOpacity(0.2),
+                                  ? _kPrimaryGreen.withAlpha(51)
+                                  : Colors.grey.withAlpha(51),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              trade.autoFollowSell ? '开启' : '关闭',
+                              trade.autoFollowSell ? 'On' : 'Off',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: trade.autoFollowSell ? _kPrimaryGreen : Colors.grey,
@@ -503,7 +515,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '跟单买/卖',
+                            'Buy/Sell',
                             style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                           ),
                           const SizedBox(height: 2),
@@ -524,7 +536,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '总买入/总卖出',
+                            'Total B/S',
                             style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                           ),
                           const SizedBox(height: 2),
@@ -541,7 +553,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '最近交易',
+                            'Last Trade',
                             style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                           ),
                           const SizedBox(height: 2),
@@ -562,19 +574,19 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
           Row(
             children: [
               Expanded(
-                child: _buildActionButton('分享', Icons.share, () => _shareCopyTrade(trade)),
+                child: _buildActionButton('Share', Icons.share, () => _shareCopyTrade(trade)),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildActionButton(
-                  trade.isPaused ? '恢复' : '暂停',
+                  trade.isPaused ? 'Resume' : 'Pause',
                   trade.isPaused ? Icons.play_arrow : Icons.pause,
                   () => _togglePauseCopyTrade(trade),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _buildActionButton('详情', Icons.info_outline, () => _showCopyTradeDetail(trade)),
+                child: _buildActionButton('Details', Icons.info_outline, () => _showCopyTradeDetail(trade)),
               ),
             ],
           ),
@@ -606,7 +618,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
     Clipboard.setData(ClipboardData(text: address));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('地址已复制'),
+        content: Text('Address copied'),
         backgroundColor: _kPrimaryGreen,
         duration: Duration(seconds: 1),
       ),
@@ -616,7 +628,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
   void _shareCopyTrade(CopyTrade trade) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('分享功能即将上线'),
+        content: Text('Share feature coming soon'),
         backgroundColor: _kOrange,
         duration: Duration(seconds: 2),
       ),
@@ -629,7 +641,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
       appState.resumeCopyTradeItem(trade.id);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('已恢复跟单'),
+          content: Text('Copy trade resumed'),
           backgroundColor: _kPrimaryGreen,
           duration: Duration(seconds: 2),
         ),
@@ -638,7 +650,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
       appState.pauseCopyTradeItem(trade.id);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('已暂停跟单'),
+          content: const Text('Copy trade paused'),
           backgroundColor: Colors.grey[700],
           duration: const Duration(seconds: 2),
         ),
@@ -683,7 +695,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               children: [
                 const SizedBox(width: 40),
                 const Text(
-                  '跟单详情',
+                  'Copy Trade Details',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
                 GestureDetector(
@@ -708,28 +720,28 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 跟单地址
-                  _buildDetailSection('跟单地址', trade.displayName),
-                  _buildDetailSection('钱包', trade.walletName),
+                  // Copy Trade Address
+                  _buildDetailSection('Address', trade.displayName),
+                  _buildDetailSection('Wallet', trade.walletName),
                   const SizedBox(height: 16),
                   const Divider(color: _kBorderColor),
                   const SizedBox(height: 16),
-                  // 跟单统计
-                  Text('跟单统计', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+                  // Copy Trade Stats
+                  Text('Statistics', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _buildStatCard('跟单买入', '${trade.buyCount}次'),
+                      _buildStatCard('Buy Count', '${trade.buyCount}'),
                       const SizedBox(width: 12),
-                      _buildStatCard('跟单卖出', '${trade.sellCount}次'),
+                      _buildStatCard('Sell Count', '${trade.sellCount}'),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _buildStatCard('总买入', trade.totalBuyText),
+                      _buildStatCard('Total Buy', trade.totalBuyText),
                       const SizedBox(width: 12),
-                      _buildStatCard('总卖出', trade.totalSellText),
+                      _buildStatCard('Total Sell', trade.totalSellText),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -750,7 +762,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                             ),
                             child: Center(
                               child: Text(
-                                trade.isPaused ? '恢复跟单' : '暂停跟单',
+                                trade.isPaused ? 'Resume' : 'Pause',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -769,7 +781,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('已停止跟单'),
+                                content: Text('Copy trade stopped'),
                                 backgroundColor: Color(0xFFEF4444),
                                 duration: Duration(seconds: 2),
                               ),
@@ -783,7 +795,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                             ),
                             child: const Center(
                               child: Text(
-                                '停止跟单',
+                                'Stop',
                                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
                               ),
                             ),
@@ -886,7 +898,11 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               );
             },
             child: traders.length >= 3
-                ? _buildTopThree(traders, key: ValueKey('top3_$_rankSubTab'))
+                ? TopThreeTraders(
+                    key: ValueKey('top3_$_rankSubTab'),
+                    traders: traders.take(3).toList(),
+                    onTraderTap: _navigateToTraderDetail,
+                  )
                 : const SizedBox.shrink(),
           ),
           // Rank list (4+) - 使用动画
@@ -1035,323 +1051,33 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
     );
   }
 
-  Widget _buildTopThree(List<Trader> traders, {Key? key}) {
-    return Container(
-      key: key,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // 第2名 - 银色 (左边，较矮)
-          _buildTopTraderCard(traders[1], 2, _kSilverColor, 155),
-          const SizedBox(width: 12),
-          // 第1名 - 金色 (中间，最高)
-          _buildTopTraderCard(traders[0], 1, _kGoldColor, 190),
-          const SizedBox(width: 12),
-          // 第3名 - 铜色 (右边，较矮)
-          _buildTopTraderCard(traders[2], 3, _kBronzeColor, 155),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopTraderCard(Trader trader, int rank, Color borderColor, double cardHeight) {
-    final isFirst = rank == 1;
-    final cardWidth = isFirst ? 130.0 : 105.0;
-
-    // 根据排名设置不同的背景渐变
-    List<Color> gradientColors;
-    if (rank == 1) {
-      gradientColors = [
-        const Color(0xFF3D3D1F), // 金色深底
-        const Color(0xFF2A2A15),
-      ];
-    } else if (rank == 2) {
-      gradientColors = [
-        const Color(0xFF2A2A2A), // 银色深底
-        const Color(0xFF1F1F1F),
-      ];
-    } else {
-      gradientColors = [
-        const Color(0xFF2A2015), // 铜色深底
-        const Color(0xFF1F1A15),
-      ];
-    }
-
-    return GestureDetector(
-      onTap: () => _navigateToTraderDetail(trader),
-      child: SizedBox(
-        width: cardWidth,
-        height: cardHeight,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: cardWidth,
-              height: cardHeight,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: gradientColors,
-                ),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: borderColor, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: borderColor.withOpacity(0.3),
-                    blurRadius: 12,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 皇冠 (仅第1名)
-                  if (isFirst)
-                    const Text('👑', style: TextStyle(fontSize: 16)),
-                  if (isFirst) const SizedBox(height: 2),
-                  // 头像
-                  Container(
-                    width: isFirst ? 48 : 40,
-                    height: isFirst ? 48 : 40,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: borderColor,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: borderColor.withOpacity(0.4),
-                          blurRadius: 8,
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        trader.avatar ?? 'https://api.dicebear.com/7.x/pixel-art/png?seed=${trader.address}',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: _kBorderColor,
-                          child: const Icon(Icons.person, color: Colors.white, size: 20),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  // 地址
-                  Text(
-                    trader.displayName,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  // 粉丝
-                  Text(
-                    '${trader.followers} 粉丝',
-                    style: TextStyle(fontSize: 9, color: Colors.grey[400]),
-                  ),
-                  const SizedBox(height: 4),
-                  // 收益 - 更突出显示
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _kPrimaryGreen.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '+\$${_formatMoney(trader.profit7d)}',
-                      style: TextStyle(
-                        fontSize: isFirst ? 12 : 11,
-                        fontWeight: FontWeight.w700,
-                        color: _kPrimaryGreen,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // 排名徽章 - 更有质感
-            Positioned(
-              left: 8,
-              top: 8,
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      borderColor,
-                      borderColor.withOpacity(0.7),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: borderColor.withOpacity(0.5),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    '$rank',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: rank == 1 ? Colors.black : Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildRankList(List<Trader> traders, {Key? key}) {
     final otherTraders = traders.length > 3 ? traders.sublist(3) : <Trader>[];
-    return Container(
+    // 使用 ListView.builder 延迟构建列表项
+    return ListView.builder(
       key: key,
-      margin: const EdgeInsets.only(top: 16),
-      child: Column(
-        children: otherTraders.map((trader) => _buildTraderRow(trader)).toList(),
-      ),
-    );
-  }
-
-  Widget _buildTraderRow(Trader trader) {
-    return GestureDetector(
-      onTap: () => _navigateToTraderDetail(trader),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Color(0xFF1A1A1A), width: 1),
+      padding: const EdgeInsets.only(top: 16),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: otherTraders.length,
+      itemBuilder: (context, index) {
+        // RepaintBoundary 隔离每行的重绘 + 使用提取的组件
+        return RepaintBoundary(
+          child: TraderListItem(
+            trader: otherTraders[index],
+            onTap: () => _navigateToTraderDetail(otherTraders[index]),
           ),
-        ),
-        child: Row(
-          children: [
-            // 排名
-            SizedBox(
-              width: 24,
-              child: Text(
-                '${trader.rank}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // 头像
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _kBorderColor, width: 2),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  trader.avatar ?? 'https://api.dicebear.com/7.x/pixel-art/png?seed=${trader.address}',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: _kBorderColor,
-                    child: const Icon(Icons.person, color: Colors.white, size: 20),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // 信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    trader.displayName,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${trader.followers} 粉丝  ${trader.followedBy} 被备注',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
-            ),
-            // 收益
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '+\$${_formatMoney(trader.profit7d)}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: _kPrimaryGreen,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF0B90B),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Text('◆', style: TextStyle(fontSize: 6, color: Colors.white)),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '+${trader.profitPercent7d.toStringAsFixed(1)}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[400]),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 
   // ==================== 活动 Tab ====================
   Widget _buildActivityTab(List<Trader> traders) {
-    return Consumer<AppState>(
-      builder: (context, appState, child) {
-        final activities = appState.activities;
-
+    // 使用 Selector 只监听 activities 变化
+    return Selector<AppState, List<Map<String, dynamic>>>(
+      selector: (_, state) => state.activities,
+      builder: (context, activities, child) {
         return Column(
           children: [
             // Sub tabs + filters
@@ -1360,13 +1086,13 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               child: Row(
                 children: [
                   // 全部
-                  _buildActivitySubTab('全部', 0),
+                  _buildActivitySubTab('All', 0),
                   const SizedBox(width: 8),
-                  // 默认
-                  _buildActivitySubTab('默认', 1),
+                  // Default
+                  _buildActivitySubTab('Default', 1),
                   const Spacer(),
                   // Filter icons
-                  _buildFilterChip('买入', Icons.arrow_downward),
+                  _buildFilterChip('Buy', Icons.arrow_downward),
                   const SizedBox(width: 8),
                   _buildFilterChip('BNB', null),
                   const SizedBox(width: 8),
@@ -1385,7 +1111,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                             children: [
                               _buildEmptyIcon(),
                               const SizedBox(height: 12),
-                              Text('暂无活动数据', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                              Text('No activity data', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
                             ],
                           ),
                         ),
@@ -1438,10 +1164,10 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(7),
-                  child: Image.network(
-                    activity['avatar'] ?? '',
+                  child: CachedNetworkImage(
+                    imageUrl: activity['avatar'] ?? '',
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorWidget: (_, __, ___) => Container(
                       color: _kBorderColor,
                       child: const Icon(Icons.person, color: Colors.white, size: 16),
                     ),
@@ -1472,11 +1198,11 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isAdd ? const Color(0xFF00D26A).withOpacity(0.15) : const Color(0xFFEF4444).withOpacity(0.15),
+                  color: isAdd ? const Color(0xFF00D26A).withAlpha(38) : const Color(0xFFEF4444).withAlpha(38),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  isAdd ? '加仓' : '减仓',
+                  isAdd ? 'Add' : 'Reduce',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -1501,10 +1227,10 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(9),
-                  child: Image.network(
-                    activity['tokenIcon'] ?? '',
+                  child: CachedNetworkImage(
+                    imageUrl: activity['tokenIcon'] ?? '',
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: _kBorderColor),
+                    errorWidget: (_, __, ___) => Container(color: _kBorderColor),
                   ),
                 ),
               ),
@@ -1517,7 +1243,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _kOrange.withOpacity(0.15),
+                  color: _kOrange.withAlpha(38),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -1537,7 +1263,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                   children: [
                     Icon(Icons.add_circle_outline, size: 14, color: _kPrimaryGreen),
                     const SizedBox(width: 4),
-                    Text('买入', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
+                    Text('Buy', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
                   ],
                 ),
               ),
@@ -1547,7 +1273,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
           // 底部：市值 + PnL
           Row(
             children: [
-              Text('市值 ${activity['marketCap'] ?? ''}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              Text('MC ${activity['marketCap'] ?? ''}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
               if (pnl != null) ...[
                 const SizedBox(width: 12),
                 Text(
@@ -1568,10 +1294,10 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
   String _formatActivityTime(DateTime time) {
     final now = DateTime.now();
     final diff = now.difference(time);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    return '${diff.inDays}天前';
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   Widget _buildActivitySubTab(String text, int index) {
@@ -1624,7 +1350,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            '推荐关注',
+            'Recommended',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[400]),
           ),
         ),
@@ -1649,10 +1375,10 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(7),
-              child: Image.network(
-                trader.avatar ?? 'https://api.dicebear.com/7.x/pixel-art/png?seed=${trader.address}',
+              child: CachedNetworkImage(
+                imageUrl: trader.avatar ?? 'https://api.dicebear.com/7.x/pixel-art/png?seed=${trader.address}',
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+                errorWidget: (context, url, error) => Container(
                   color: _kBorderColor,
                   child: const Icon(Icons.person, color: Colors.white, size: 18),
                 ),
@@ -1698,7 +1424,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                 children: [
                   Icon(Icons.visibility_outlined, size: 14, color: _kPrimaryGreen),
                   const SizedBox(width: 4),
-                  Text('关注', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
+                  Text('Follow', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
                 ],
               ),
             ),
@@ -1710,9 +1436,10 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
 
   // ==================== 关注 Tab ====================
   Widget _buildFollowTab() {
-    return Consumer<AppState>(
-      builder: (context, appState, child) {
-        final followedTraders = appState.followedTraders;
+    // 使用 Selector 只监听 followedTraders 变化
+    return Selector<TraderState, List<Trader>>(
+      selector: (_, state) => state.followedTraders,
+      builder: (context, followedTraders, child) {
         return Column(
           children: [
             // Sub tabs + filters
@@ -1720,9 +1447,9 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
-                  _buildFollowSubTab('全部', 0),
+                  _buildFollowSubTab('All', 0),
                   const SizedBox(width: 8),
-                  _buildFollowSubTab('默认(${followedTraders.length})', 1),
+                  _buildFollowSubTab('Default(${followedTraders.length})', 1),
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () {},
@@ -1749,7 +1476,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                 children: [
                   _buildDropdownChip('30D'),
                   const SizedBox(width: 8),
-                  _buildDropdownChip('关注时间'),
+                  _buildDropdownChip('Follow Time'),
                   const SizedBox(width: 8),
                   Icon(Icons.volume_up, size: 18, color: Colors.grey[500]),
                   const Spacer(),
@@ -1764,12 +1491,12 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
             // Content
             Expanded(
               child: followedTraders.isEmpty
-                  ? _buildEmptyState('暂无关注', '发现顶级牛人钱包')
+                  ? _buildEmptyState('No following', 'Discover top traders')
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       itemCount: followedTraders.length,
                       itemBuilder: (context, index) {
-                        return _buildFollowedTraderCard(followedTraders[index], appState);
+                        return _buildFollowedTraderCard(followedTraders[index]);
                       },
                     ),
             ),
@@ -1779,7 +1506,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
     );
   }
 
-  Widget _buildFollowedTraderCard(Trader trader, AppState appState) {
+  Widget _buildFollowedTraderCard(Trader trader) {
     final pnlStr = '${trader.profitPercent7d >= 0 ? '+' : ''}${(trader.profitPercent7d * 100).toStringAsFixed(1)}%';
     final winRateStr = '${(trader.winRate * 100).toStringAsFixed(0)}%';
     final profitStr = '${trader.profit7d >= 0 ? '+' : ''}${trader.profit7d.toStringAsFixed(3)} BNB';
@@ -1805,10 +1532,10 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(22),
               child: trader.avatar != null
-                  ? Image.network(
-                      trader.avatar!,
+                  ? CachedNetworkImage(
+                      imageUrl: trader.avatar!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Center(
+                      errorWidget: (context, url, error) => Center(
                         child: Text(
                           trader.displayName[0].toUpperCase(),
                           style: const TextStyle(
@@ -1874,7 +1601,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '胜率 $winRateStr  |  7d收益 $profitStr',
+                  'Win $winRateStr  |  7d Profit $profitStr',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[500],
@@ -1886,7 +1613,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
           // Unfollow button
           GestureDetector(
             onTap: () {
-              appState.removeFollowedTrader(trader.id);
+              context.read<TraderState>().removeFollowedTrader(trader.id);
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1896,7 +1623,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                 border: Border.all(color: Colors.grey[600]!),
               ),
               child: Text(
-                '取消关注',
+                'Unfollow',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[400],
@@ -1961,7 +1688,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
             children: [
               _buildDropdownChip('30D'),
               const SizedBox(width: 8),
-              _buildDropdownChip('备注时间排序'),
+              _buildDropdownChip('Notes Time'),
               const Spacer(),
               Icon(Icons.tune, size: 18, color: Colors.grey[500]),
               const SizedBox(width: 16),
@@ -1971,7 +1698,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
         ),
         // Empty state
         Expanded(
-          child: _buildEmptyState('暂无数据', '发现顶级牛人钱包'),
+          child: _buildEmptyState('No data', 'Discover top traders'),
         ),
       ],
     );
@@ -2059,19 +1786,19 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
                   TextSpan(
                     style: const TextStyle(fontSize: 12, color: Colors.white),
                     children: [
-                      const TextSpan(text: '为您的钱包 '),
+                      const TextSpan(text: 'Deposit to '),
                       TextSpan(
                         text: 'Wallet1',
-                        style: TextStyle(color: _kPrimaryGreen, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: const Color(0xFFF0B90B), fontWeight: FontWeight.w600),
                       ),
-                      TextSpan(text: ' (${balance.toStringAsFixed(1)} BNB) 充值'),
+                      TextSpan(text: ' (${balance.toStringAsFixed(1)} BNB)'),
                     ],
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '完成充值，秒启交易！',
+                  'Complete deposit to start trading!',
                   style: TextStyle(fontSize: 10, color: Colors.grey[500]),
                 ),
               ],
@@ -2090,9 +1817,9 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.download, size: 12, color: _kPrimaryGreen),
+                  const Icon(Icons.download, size: 12, color: Color(0xFF5CE1D6)),
                   const SizedBox(width: 4),
-                  Text('充值', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
+                  const Text('Deposit', style: TextStyle(fontSize: 12, color: Color(0xFF5CE1D6))),
                 ],
               ),
             ),
@@ -2129,22 +1856,22 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: _kCardColor,
-        title: const Text('新建跟单', style: TextStyle(color: Colors.white)),
+        title: const Text('New Copy Trade', style: TextStyle(color: Colors.white)),
         content: const Text(
-          '请先在牛人榜中选择要跟单的钱包',
+          'Please select a wallet from Rankings first',
           style: TextStyle(color: Colors.grey),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('取消', style: TextStyle(color: Colors.grey[400])),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _tabController.animateTo(1);
             },
-            child: const Text('去选择', style: TextStyle(color: _kPrimaryGreen)),
+            child: const Text('Select', style: TextStyle(color: _kPrimaryGreen)),
           ),
         ],
       ),
@@ -2154,7 +1881,7 @@ class _CopyTradeScreenState extends State<CopyTradeScreen>
   void _toggleFollow(Trader trader) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('已关注 ${trader.displayName}'),
+        content: Text('Now following ${trader.displayName}'),
         backgroundColor: _kPrimaryGreen,
         duration: const Duration(seconds: 2),
       ),

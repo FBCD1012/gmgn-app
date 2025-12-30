@@ -261,6 +261,43 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// 充值 BNB
+  Future<bool> deposit(double amount) async {
+    if (_currentWallet == null) return false;
+
+    // 更新钱包余额
+    final updatedWallet = Wallet(
+      id: _currentWallet!.id,
+      name: _currentWallet!.name,
+      address: _currentWallet!.address,
+      balance: _currentWallet!.balance + amount,
+      chain: _currentWallet!.chain,
+      holdings: _currentWallet!.holdings,
+    );
+
+    _currentWallet = updatedWallet;
+    final index = _wallets.indexWhere((w) => w.id == updatedWallet.id);
+    if (index >= 0) {
+      _wallets[index] = updatedWallet;
+    }
+
+    // 添加交易活动记录
+    final now = DateTime.now();
+    _activities.insert(0, {
+      'id': 'deposit_${now.millisecondsSinceEpoch}',
+      'type': 'deposit',
+      'amount': amount,
+      'currency': 'BNB',
+      'status': 'completed',
+      'txHash': '0x${now.millisecondsSinceEpoch.toRadixString(16)}...mock',
+      'createdAt': now,
+      'description': '充值 $amount BNB',
+    });
+
+    notifyListeners();
+    return true;
+  }
+
   // ============ 代币操作 ============
 
   /// 加载热门代币

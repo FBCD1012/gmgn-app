@@ -13,8 +13,8 @@ class _AppTabsState extends State<AppTabs> {
   int _selectedMainTab = 1;
   int _selectedChain = 2; // BSC 默认选中
 
-  final _mainTabs = ['收藏', '热门', '战壕', '新币'];
-  final _chains = ['推荐', 'SOL', 'BSC', 'MONAD', 'BA'];
+  final _mainTabs = ['Favorites', 'Hot', 'Trenches', 'New'];
+  final _chains = ['Featured', 'SOL', 'BSC', 'MONAD', 'BA'];
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +59,7 @@ class _AppTabsState extends State<AppTabs> {
                       Text('🐰', style: TextStyle(fontSize: 14)),
                       const Gap(4),
                       Text(
-                        '推荐',
+                        'Featured',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

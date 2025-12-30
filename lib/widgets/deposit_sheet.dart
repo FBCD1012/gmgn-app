@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../providers/wallet_state.dart';
 import '../providers/app_state.dart';
 
 class DepositSheet extends StatefulWidget {
@@ -29,7 +30,7 @@ class _DepositSheetState extends State<DepositSheet> {
     Clipboard.setData(ClipboardData(text: _walletAddress));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('地址已复制到剪贴板'),
+        content: Text('Address copied to clipboard'),
         backgroundColor: Color(0xFF4ADE80),
         duration: Duration(seconds: 2),
       ),
@@ -41,12 +42,12 @@ class _DepositSheetState extends State<DepositSheet> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('跨链/闪兑', style: TextStyle(color: Colors.white)),
+        title: const Text('Bridge/Swap', style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '选择源链和代币，将其兑换为当前链的BNB',
+              'Select source chain and token to swap to BNB',
               style: TextStyle(color: Colors.grey[400]),
             ),
             const SizedBox(height: 16),
@@ -62,7 +63,7 @@ class _DepositSheetState extends State<DepositSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('取消', style: TextStyle(color: Colors.grey[400])),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
           ),
         ],
       ),
@@ -78,7 +79,7 @@ class _DepositSheetState extends State<DepositSheet> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D0D0D),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFF333333)),
         ),
@@ -88,7 +89,7 @@ class _DepositSheetState extends State<DepositSheet> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withAlpha(51),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 18),
@@ -109,7 +110,7 @@ class _DepositSheetState extends State<DepositSheet> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: Text('从 $sourceChain 兑换', style: const TextStyle(color: Colors.white, fontSize: 16)),
+        title: Text('Swap from $sourceChain', style: const TextStyle(color: Colors.white, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -118,10 +119,10 @@ class _DepositSheetState extends State<DepositSheet> {
               keyboardType: TextInputType.number,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: '输入兑换金额',
+                hintText: 'Enter swap amount',
                 hintStyle: TextStyle(color: Colors.grey[600]),
                 filled: true,
-                fillColor: const Color(0xFF0D0D0D),
+                fillColor: const Color(0xFF000000),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Color(0xFF333333)),
@@ -135,7 +136,7 @@ class _DepositSheetState extends State<DepositSheet> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Text('预估获得: ', style: TextStyle(color: Colors.grey[500])),
+                Text('Est. receive: ', style: TextStyle(color: Colors.grey[500])),
                 const Text('0.00 BNB', style: TextStyle(color: Color(0xFFF0B90B))),
               ],
             ),
@@ -144,19 +145,19 @@ class _DepositSheetState extends State<DepositSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('取消', style: TextStyle(color: Colors.grey[400])),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('跨链兑换功能即将上线'),
+                  content: Text('Cross-chain swap coming soon'),
                   backgroundColor: Color(0xFFF0B90B),
                 ),
               );
             },
-            child: const Text('兑换', style: TextStyle(color: Color(0xFF4ADE80))),
+            child: const Text('Swap', style: TextStyle(color: Color(0xFF4ADE80))),
           ),
         ],
       ),
@@ -166,15 +167,51 @@ class _DepositSheetState extends State<DepositSheet> {
   void _simulateDeposit() async {
     setState(() => _isDepositing = true);
 
+    // 提前捕获 context 相关对象，避免异步后使用
+    final walletState = context.read<WalletState>();
+    final appState = context.read<AppState>();
+    final messenger = ScaffoldMessenger.of(context);
+
     // 模拟充值延迟
     await Future.delayed(const Duration(seconds: 2));
 
-    if (mounted) {
-      setState(() => _isDepositing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (!mounted) return;
+
+    // 调用真正的充值方法
+    final success = await walletState.deposit(0.1);
+
+    // 同步添加活动记录到 AppState
+    if (success) {
+      final now = DateTime.now();
+      appState.addActivity({
+        'id': 'deposit_${now.millisecondsSinceEpoch}',
+        'type': 'deposit',
+        'amount': 0.1,
+        'currency': 'BNB',
+        'status': 'completed',
+        'txHash': '0x${now.millisecondsSinceEpoch.toRadixString(16)}...mock',
+        'createdAt': now,
+        'description': 'Deposit 0.1 BNB',
+      });
+    }
+
+    if (!mounted) return;
+
+    setState(() => _isDepositing = false);
+
+    if (success) {
+      messenger.showSnackBar(
         const SnackBar(
-          content: Text('模拟充值成功! +0.1 BNB'),
+          content: Text('Deposit success! +0.1 BNB'),
           backgroundColor: Color(0xFF4ADE80),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Deposit failed, please try again'),
+          backgroundColor: Color(0xFFFF4757),
           duration: Duration(seconds: 2),
         ),
       );
@@ -183,9 +220,10 @@ class _DepositSheetState extends State<DepositSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppState>(
-      builder: (context, appState, child) {
-        final balance = appState.totalBalance;
+    // 使用 Selector 只监听余额变化
+    return Selector<WalletState, double>(
+      selector: (_, state) => state.totalBalance,
+      builder: (context, balance, child) {
 
         return Container(
           height: MediaQuery.of(context).size.height * 0.75,
@@ -213,7 +251,7 @@ class _DepositSheetState extends State<DepositSheet> {
                   children: [
                     const SizedBox(width: 40),
                     const Text(
-                      '充值',
+                      'Deposit',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -244,8 +282,8 @@ class _DepositSheetState extends State<DepositSheet> {
                       // 跨链/闪兑
                       _buildOptionCard(
                         icon: Icons.swap_horiz,
-                        title: '跨链/闪兑',
-                        subtitle: '将其他链的资产兑换为BNB(当前链路原生代币)',
+                        title: 'Bridge/Swap',
+                        subtitle: 'Swap assets from other chains to BNB',
                         onTap: _showCrossChainDialog,
                       ),
                       const SizedBox(height: 16),
@@ -253,7 +291,7 @@ class _DepositSheetState extends State<DepositSheet> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0D0D0D),
+                          color: const Color(0xFF000000),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: const Color(0xFF333333),
@@ -286,7 +324,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                 ),
                                 const SizedBox(width: 12),
                                 const Text(
-                                  '存入 BNB',
+                                  'Deposit BNB',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -305,7 +343,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                   height: 1.5,
                                 ),
                                 children: const [
-                                  TextSpan(text: '该地址仅支持 '),
+                                  TextSpan(text: 'This address only supports '),
                                   TextSpan(
                                     text: 'Binance Smart Chain (BEP20)',
                                     style: TextStyle(
@@ -313,7 +351,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  TextSpan(text: ' 网络的 '),
+                                  TextSpan(text: ' network '),
                                   TextSpan(
                                     text: 'BNB',
                                     style: TextStyle(
@@ -321,7 +359,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  TextSpan(text: ' 充值，请勿使用其他网络，以免造成损失。'),
+                                  TextSpan(text: ' deposits. Do not use other networks to avoid loss.'),
                                 ],
                               ),
                             ),
@@ -357,7 +395,7 @@ class _DepositSheetState extends State<DepositSheet> {
                             Row(
                               children: [
                                 Text(
-                                  '接收地址',
+                                  'Receiving Address',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.grey[500],
@@ -365,7 +403,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                 ),
                                 const Spacer(),
                                 Text(
-                                  '余额 ${balance.toStringAsFixed(3)} BNB',
+                                  'Balance ${balance.toStringAsFixed(3)} BNB',
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFFF0B90B),
@@ -400,7 +438,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Text(
-                                      '复制',
+                                      'Copy',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
@@ -440,7 +478,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                     Icon(Icons.add, color: Colors.black, size: 20),
                                     SizedBox(width: 6),
                                     Text(
-                                      '模拟充值 0.1 BNB (测试)',
+                                      'Simulate Deposit 0.1 BNB (Test)',
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
@@ -475,7 +513,7 @@ class _DepositSheetState extends State<DepositSheet> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D0D0D),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: const Color(0xFF333333),

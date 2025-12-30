@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -33,8 +33,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    final appState = context.read<AppState>();
-    final success = await appState.register(_emailController.text, 'password123');
+    final authState = context.read<AuthState>();
+    final success = await authState.register(_emailController.text, 'password123');
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -43,7 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(appState.error ?? '注册失败'),
+            content: Text(authState.error ?? 'Registration failed'),
             backgroundColor: Colors.red,
           ),
         );
@@ -54,8 +54,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _handleSocialLogin(String provider) async {
     setState(() => _isLoading = true);
 
-    final appState = context.read<AppState>();
-    final success = await appState.socialLogin(provider);
+    final authState = context.read<AuthState>();
+    final success = await authState.socialLogin(provider);
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -74,7 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: const Color(0xFF000000),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -94,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 60),
               // 标题
               const Text(
-                '注册',
+                'Sign Up',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -118,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    hintText: '输入邮箱，推荐使用Gmail、Outlook邮箱',
+                    hintText: 'Enter email (Gmail or Outlook recommended)',
                     hintStyle: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,
@@ -154,7 +154,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           )
                         : Text(
-                            '下一步',
+                            'Next',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -169,7 +169,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Row(
                 children: [
                   Text(
-                    '已有账号？',
+                    'Already have an account?',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[500],
@@ -185,7 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       );
                     },
                     child: const Text(
-                      '去登录',
+                      'Login',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,

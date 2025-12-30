@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:math' as math;
 
 class AnimatedDogecoin extends StatefulWidget {
@@ -59,24 +60,25 @@ class _AnimatedDogecoinState extends State<AnimatedDogecoin>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _floatAnimation.value),
-          child: Transform.rotate(
-            angle: _rotateAnimation.value,
-            child: Transform.scale(
-              scale: _scaleAnimation.value,
-              child: Opacity(
-                opacity: _opacityAnimation.value,
+    // 使用 FadeTransition + SlideTransition 等替代 Opacity，避免 saveLayer 开销
+    return FadeTransition(
+      opacity: _opacityAnimation,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _floatAnimation.value),
+            child: Transform.rotate(
+              angle: _rotateAnimation.value,
+              child: Transform.scale(
+                scale: _scaleAnimation.value,
                 child: child,
               ),
             ),
-          ),
-        );
-      },
-      child: _buildCoin(),
+          );
+        },
+        child: _buildCoin(),
+      ),
     );
   }
 
@@ -153,12 +155,12 @@ class _AnimatedDogecoinState extends State<AnimatedDogecoin>
                 // Dogecoin logo
                 Center(
                   child: ClipOval(
-                    child: Image.network(
-                      'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+                    child: CachedNetworkImage(
+                      imageUrl: 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
                       width: widget.size * 0.55,
                       height: widget.size * 0.55,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
+                      errorWidget: (context, url, error) {
                         return Icon(
                           Icons.currency_bitcoin,
                           size: widget.size * 0.5,

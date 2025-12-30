@@ -9,19 +9,21 @@ class MonitorScreen extends StatefulWidget {
 }
 
 class _MonitorScreenState extends State<MonitorScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   late TabController _tabController;
   int _selectedChain = 0;
 
-  final List<String> _tabs = ['关注', '飙升', 'Dex付费', 'AI信号', 'KOL', '狙击'];
+  final List<String> _tabs = ['Following', 'Trending', 'Dex Paid', 'AI Signal', 'KOL', 'Snipe'];
   final List<String> _chains = ['BNB', 'P1'];
 
   // Mock数据
   final List<Map<String, dynamic>> _tokens = [
     {
       'id': 'token_monitor_1',
-      'name': '摇钱树',
-      'symbol': '摇钱树',
+      'name': 'MoneyTree',
+      'symbol': 'MoneyTree',
       'address': '0x26...7777',
       'time': '2h',
       'avatarColor': const Color(0xFFFFD700),
@@ -35,8 +37,8 @@ class _MonitorScreenState extends State<MonitorScreen>
     },
     {
       'id': 'token_monitor_2',
-      'name': '币安绿光',
-      'symbol': '币安绿光',
+      'name': 'BNB Green',
+      'symbol': 'BNB Green',
       'address': '0x59...4444',
       'time': '54m',
       'avatarColor': const Color(0xFF4ADE80),
@@ -50,8 +52,8 @@ class _MonitorScreenState extends State<MonitorScreen>
     },
     {
       'id': 'token_monitor_3',
-      'name': '始终如一',
-      'symbol': '始终如一',
+      'name': 'Constant',
+      'symbol': 'Constant',
       'address': '0x24...4444',
       'time': '2h',
       'avatarColor': const Color(0xFF60A5FA),
@@ -107,8 +109,9 @@ class _MonitorScreenState extends State<MonitorScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: const Color(0xFF000000),
       body: SafeArea(
         child: Column(
           children: [
@@ -144,7 +147,7 @@ class _MonitorScreenState extends State<MonitorScreen>
         labelColor: Colors.white,
         unselectedLabelColor: Colors.grey[600],
         labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        indicatorColor: const Color(0xFF4ADE80),
+        indicatorColor: Colors.white,
         indicatorSize: TabBarIndicatorSize.label,
         dividerColor: Colors.transparent,
         tabAlignment: TabAlignment.start,
@@ -192,7 +195,7 @@ class _MonitorScreenState extends State<MonitorScreen>
               borderRadius: BorderRadius.circular(6),
             ),
             child: const Text(
-              '买入',
+              'Buy',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -280,7 +283,7 @@ class _MonitorScreenState extends State<MonitorScreen>
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '≥ 更新',
+                  '≥ Update',
                   style: TextStyle(fontSize: 10, color: Colors.grey[400]),
                 ),
               ),
@@ -430,7 +433,7 @@ class _MonitorScreenState extends State<MonitorScreen>
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
-                      '买入',
+                      'Buy',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -453,7 +456,7 @@ class _MonitorScreenState extends State<MonitorScreen>
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withAlpha(38),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(

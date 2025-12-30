@@ -43,7 +43,7 @@ class LoginPrompt extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
                     Text(
-                      '更快发现，秒级交易',
+                      'Faster Discovery, Instant Trading',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -57,7 +57,7 @@ class LoginPrompt extends StatelessWidget {
                 const SizedBox(height: 12),
                 // 副标题
                 Text(
-                  '快速链上操作，一键交易；自动止盈止损。',
+                  'Fast on-chain operations, one-click trading; auto TP/SL.',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[500],
@@ -83,7 +83,7 @@ class LoginPrompt extends StatelessWidget {
                           ),
                           child: const Center(
                             child: Text(
-                              '注册',
+                              'Sign Up',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -107,7 +107,7 @@ class LoginPrompt extends StatelessWidget {
                           ),
                           child: const Center(
                             child: Text(
-                              '登录',
+                              'Login',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,

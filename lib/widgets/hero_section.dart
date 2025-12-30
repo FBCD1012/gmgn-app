@@ -11,13 +11,15 @@ class HeroSection extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Background Dogecoin - 若影若现
+          // Background Dogecoin - 若影若现，RepaintBoundary 隔离动画重绘
           const Positioned(
             right: 0,
             top: 10,
-            child: AnimatedDogecoin(
-              size: 140,
-              opacity: 0.2,
+            child: RepaintBoundary(
+              child: AnimatedDogecoin(
+                size: 140,
+                opacity: 0.2,
+              ),
             ),
           ),
           // Content
@@ -28,7 +30,7 @@ class HeroSection extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    '总余额',
+                    'Total Balance',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey[500],

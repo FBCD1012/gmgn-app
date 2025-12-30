@@ -105,3 +105,56 @@ class GTextStyle {
     color: GColors.textTertiary,
   );
 }
+
+/// Responsive breakpoints and utilities
+class GResponsive {
+  GResponsive._();
+
+  // Breakpoints
+  static const double mobileMax = 599;
+  static const double tabletMin = 600;
+  static const double tabletMax = 899;
+  static const double desktopMin = 900;
+
+  /// Check if current screen is mobile
+  static bool isMobile(BuildContext context) =>
+      MediaQuery.of(context).size.width <= mobileMax;
+
+  /// Check if current screen is tablet
+  static bool isTablet(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return width >= tabletMin && width <= tabletMax;
+  }
+
+  /// Check if current screen is desktop
+  static bool isDesktop(BuildContext context) =>
+      MediaQuery.of(context).size.width >= desktopMin;
+
+  /// Get responsive value based on screen size
+  static T value<T>(BuildContext context, {
+    required T mobile,
+    T? tablet,
+    T? desktop,
+  }) {
+    if (isDesktop(context)) return desktop ?? tablet ?? mobile;
+    if (isTablet(context)) return tablet ?? mobile;
+    return mobile;
+  }
+
+  /// Get responsive horizontal padding
+  static double horizontalPadding(BuildContext context) =>
+      value(context, mobile: 12.0, tablet: 24.0, desktop: 32.0);
+
+  /// Get responsive grid columns
+  static int gridColumns(BuildContext context) =>
+      value(context, mobile: 1, tablet: 2, desktop: 3);
+}
+
+/// Screen size extension for quick access
+extension ScreenSizeExtension on BuildContext {
+  double get screenWidth => MediaQuery.of(this).size.width;
+  double get screenHeight => MediaQuery.of(this).size.height;
+  bool get isMobile => GResponsive.isMobile(this);
+  bool get isTablet => GResponsive.isTablet(this);
+  bool get isDesktop => GResponsive.isDesktop(this);
+}

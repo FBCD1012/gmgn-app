@@ -75,6 +75,38 @@ class Token {
     }
     return '\$${marketCap.toStringAsFixed(2)}';
   }
+
+  String get formattedVolume {
+    if (volume24h >= 1000000) {
+      return '\$${(volume24h / 1000000).toStringAsFixed(2)}M';
+    } else if (volume24h >= 1000) {
+      return '\$${(volume24h / 1000).toStringAsFixed(2)}K';
+    }
+    return '\$${volume24h.toStringAsFixed(2)}';
+  }
+
+  String get formattedTxCount {
+    if (txCount >= 1000000) {
+      return '${(txCount / 1000000).toStringAsFixed(2)}M';
+    } else if (txCount >= 1000) {
+      return '${(txCount / 1000).toStringAsFixed(2)}K';
+    }
+    return txCount.toString();
+  }
+
+  String get formattedPriceChange {
+    final sign = priceChange24h >= 0 ? '+' : '';
+    return '$sign${priceChange24h.toStringAsFixed(1)}%';
+  }
+
+  String get formattedHolders {
+    if (holders >= 1000000) {
+      return '${(holders / 1000000).toStringAsFixed(2)}M';
+    } else if (holders >= 1000) {
+      return '${(holders / 1000).toStringAsFixed(2)}K';
+    }
+    return holders.toString();
+  }
 }
 
 class TokenSocial {

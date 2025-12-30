@@ -42,7 +42,9 @@ dependencies:
   gap: ^3.0.1
   flutter_screenutil: ^5.9.0
   cached_network_image: ^3.3.1
+  flutter_cache_manager: ^3.3.1
   qr_flutter: ^4.1.0
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

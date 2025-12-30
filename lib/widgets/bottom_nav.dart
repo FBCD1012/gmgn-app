@@ -23,7 +23,7 @@ class _BottomNavState extends State<BottomNav> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: const BoxDecoration(
-        color: Color(0xFF0D0D0D),
+        color: Color(0xFF000000),
         border: Border(
           top: BorderSide(
             color: Color(0xFF262626),

@@ -77,11 +77,11 @@ class CopyTradeRecord {
   String get statusText {
     switch (status) {
       case CopyTradeStatus.active:
-        return '跟单中';
+        return 'Active';
       case CopyTradeStatus.paused:
-        return '已暂停';
+        return 'Paused';
       case CopyTradeStatus.stopped:
-        return '已停止';
+        return 'Stopped';
     }
   }
 
@@ -179,16 +179,16 @@ class CopyTrade {
     return '--';
   }
 
-  String get positionCountText => '$configuredPositionCount 次';
+  String get positionCountText => '$configuredPositionCount times';
 
   String get lastTradeTimeText {
     if (lastTradeTime == null) return '--';
     final now = DateTime.now();
     final diff = now.difference(lastTradeTime!);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    return '${diff.inDays}天前';
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   bool get isActive => status == CopyTradeStatus.active;

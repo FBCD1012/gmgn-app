@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/app_state.dart';
 import '../models/copy_trade.dart';
 
 const Color _kPrimaryGreen = Color(0xFF00D26A);
-const Color _kBackgroundColor = Color(0xFF0D0D0D);
+const Color _kBackgroundColor = Color(0xFF000000); // Pure black
 const Color _kCardColor = Color(0xFF1A1A1A);
 const Color _kInputColor = Color(0xFF252525);
 const Color _kBorderColor = Color(0xFF333333);
@@ -162,10 +163,10 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      'https://api.dicebear.com/7.x/pixel-art/png?seed=${widget.trader['address']}',
+                    child: CachedNetworkImage(
+                      imageUrl: 'https://api.dicebear.com/7.x/pixel-art/png?seed=${widget.trader['address']}',
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      errorWidget: (context, url, error) => Container(
                         color: _kBorderColor,
                         child: const Icon(Icons.person, color: Colors.white),
                       ),

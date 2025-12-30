@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../components/components.dart';
 
 class AppHeader extends StatelessWidget {
@@ -11,30 +12,26 @@ class AppHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: GSpacing.lg, vertical: GSpacing.lg),
       child: Row(
         children: [
-          // Logo头像
+          // Logo头像 - Doge柴犬
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(GRadius.md),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF2D5A3D), Color(0xFF1A3D2A)],
-              ),
+              color: const Color(0xFFD4A853),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(GRadius.md),
-              child: Image.network(
-                'https://pump.mypinata.cloud/ipfs/QmeSzchzEPqCU1jwTnsLjLsBgE6r6bVP9wEL8FfwXkh6mg?img-width=128&img-dpr=2',
+              child: CachedNetworkImage(
+                imageUrl: 'https://upload.wikimedia.org/wikipedia/en/5/5f/Original_Doge_meme.jpg',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.pets, color: Colors.white, size: 20),
+                errorWidget: (context, url, error) => const Icon(Icons.pets, color: Colors.white, size: 20),
               ),
             ),
           ),
           const Gap(GSpacing.lg),
           // 搜索框
-          const Expanded(child: GSearchInput(placeholder: '搜索代币/钱包')),
+          const Expanded(child: GSearchInput(placeholder: 'Search token/wallet')),
           const Gap(GSpacing.lg),
           // 扫码按钮
           GIconButton(

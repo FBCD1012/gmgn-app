@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -33,8 +33,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    final appState = context.read<AppState>();
-    final success = await appState.login(_emailController.text, 'password123');
+    final authState = context.read<AuthState>();
+    final success = await authState.login(_emailController.text, 'password123');
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(appState.error ?? '登录失败'),
+            content: Text(authState.error ?? 'Login failed'),
             backgroundColor: Colors.red,
           ),
         );
@@ -54,8 +54,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleSocialLogin(String provider) async {
     setState(() => _isLoading = true);
 
-    final appState = context.read<AppState>();
-    final success = await appState.socialLogin(provider);
+    final authState = context.read<AuthState>();
+    final success = await authState.socialLogin(provider);
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 80),
               // 标题 - 精确还原字体大小和粗细
               const Text(
-                '登录',
+                'Login',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    hintText: '输入邮箱',
+                    hintText: 'Enter email',
                     hintStyle: TextStyle(
                       color: Color(0xFF8E8E93),
                       fontSize: 16,
@@ -159,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           )
                         : Text(
-                            '下一步',
+                            'Next',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     children: [
                       const Text(
-                        '还没有账号？',
+                        'No account?',
                         style: TextStyle(
                           fontSize: 14,
                           color: Color(0xFF8E8E93),
@@ -196,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         },
                         child: const Text(
-                          '立即注册',
+                          'Sign Up',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const Text(
-                    '忘记密码？',
+                    'Forgot password?',
                     style: TextStyle(
                       fontSize: 14,
                       color: Color(0xFF8E8E93),

@@ -10,9 +10,9 @@ class AppFilters extends StatefulWidget {
 }
 
 class _AppFiltersState extends State<AppFilters> {
-  String _platform = '多平台';
+  String _platform = 'All DEX';
   String _time = '24h';
-  String _sort = '市值排序';
+  String _sort = 'Market Cap';
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class _AppFiltersState extends State<AppFilters> {
           // 筛选下拉菜单
           _FilterDropdown(
             value: _platform,
-            options: const ['多平台', 'Pump', 'Raydium', 'PancakeSwap'],
+            options: const ['All DEX', 'Pump', 'Raydium', 'PancakeSwap'],
             onChanged: (v) => setState(() => _platform = v),
           ),
           const Gap(GSpacing.md),
@@ -39,7 +39,7 @@ class _AppFiltersState extends State<AppFilters> {
           _FilterDropdown(
             value: _sort,
             icon: Icons.arrow_downward,
-            options: const ['市值排序', '交易量', '涨跌幅', '持有人'],
+            options: const ['Market Cap', 'Volume', 'Change %', 'Holders'],
             onChanged: (v) => setState(() => _sort = v),
           ),
         ],

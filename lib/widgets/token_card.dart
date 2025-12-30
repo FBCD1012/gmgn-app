@@ -21,6 +21,9 @@ class TokenData {
   final bool txPositive;
   final String? imageUrl;
   final bool hasVerified;
+  final String volume;        // 成交量 Vol
+  final String txCount;       // 交易数
+  final String changePercent; // 涨跌幅 1h%
 
   const TokenData({
     required this.id,
@@ -40,6 +43,9 @@ class TokenData {
     this.txPositive = true,
     this.imageUrl,
     this.hasVerified = false,
+    this.volume = '\$0',
+    this.txCount = '0',
+    this.changePercent = '0%',
   });
 }
 
@@ -50,6 +56,8 @@ class TokenCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPositive = !token.changePercent.startsWith('-');
+
     return GCard.flat(
       onTap: () => Navigator.push(
         context,
@@ -57,109 +65,141 @@ class TokenCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 头像
-          GAvatar(
-            imageUrl: token.imageUrl,
-            text: token.symbol,
-            badge: token.hasVerified ? const GVerifiedBadge() : null,
-          ),
-          const Gap(GSpacing.lg),
-          // 信息
+          // ========== 左列: 头像 + 名称 + 持有者 (flex 5) ==========
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            flex: 5,
+            child: Row(
               children: [
-                // 名称行
-                Row(
+                // 头像
+                Stack(
                   children: [
-                    Flexible(
-                      child: Text(
-                        token.name,
-                        style: GTextStyle.subtitle.copyWith(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    GAvatar(
+                      imageUrl: token.imageUrl,
+                      name: token.symbol,
+                      size: 44,
+                      borderRadius: 12,
                     ),
-                    const Gap(GSpacing.xs),
-                    Text(token.symbol, style: GTextStyle.small),
+                    if (token.hasVerified)
+                      const Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GVerifiedBadge(size: 14),
+                      ),
                   ],
                 ),
-                const Gap(GSpacing.xs),
-                // 统计行
-                Row(
-                  children: [
-                    _StatItem(Icons.access_time, token.time),
-                    const Gap(GSpacing.sm),
-                    _StatItem(Icons.people_outline, '${token.holders}'),
-                    const Gap(GSpacing.sm),
-                    Text(
-                      token.tx,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: token.txPositive ? GColors.green : GColors.red,
+                const Gap(GSpacing.md),
+                // 名称信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 名称 + 图标
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              token.name,
+                              style: GTextStyle.subtitle.copyWith(fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Gap(4),
+                          // 小图标组
+                          Icon(Icons.copy_outlined, size: 12, color: GColors.textTertiary),
+                          const Gap(4),
+                          Icon(Icons.search, size: 12, color: GColors.textTertiary),
+                        ],
                       ),
-                    ),
-                  ],
+                      const Gap(4),
+                      // 时间 / 持有者
+                      Row(
+                        children: [
+                          if (token.time.isNotEmpty) ...[
+                            Text(
+                              token.time,
+                              style: TextStyle(fontSize: 11, color: GColors.textTertiary),
+                            ),
+                            Text(' / ', style: TextStyle(fontSize: 11, color: GColors.textTertiary)),
+                          ],
+                          Text(
+                            _formatNumber(token.holders),
+                            style: TextStyle(fontSize: 11, color: GColors.textTertiary),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const Gap(GSpacing.md),
-          // 市值和涨跌
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('MC ', style: GTextStyle.tiny),
-                  Text(
-                    token.marketCap,
-                    style: GTextStyle.subtitle.copyWith(fontSize: 13),
+
+          // ========== 中列: Vol / 交易数 (flex 3) ==========
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  token.volume,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
                   ),
-                ],
-              ),
-              const Gap(GSpacing.xs),
-              token.badges.isNotEmpty
-                  ? _buildBadge(token.badges.first)
-                  : GTag(
-                      label: token.txPositive ? '+5.2%' : '-3.1%',
-                      color: token.txPositive ? GColors.green : GColors.red,
-                    ),
-            ],
+                ),
+                const Gap(4),
+                Text(
+                  token.txCount,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: GColors.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Gap(GSpacing.lg),
+
+          // ========== 右列: 市值 / 涨跌幅 (flex 3) ==========
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  token.marketCap,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+                const Gap(4),
+                Text(
+                  token.changePercent,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: isPositive ? GColors.green : GColors.red,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBadge(String badge) {
-    if (badge.contains('%')) {
-      final isNegative = badge.startsWith('-');
-      return GTag(
-        label: badge,
-        color: isNegative ? GColors.red : GColors.green,
-      );
+  String _formatNumber(int num) {
+    if (num >= 1000000) {
+      return '${(num / 1000000).toStringAsFixed(2)}M';
+    } else if (num >= 1000) {
+      return '${(num / 1000).toStringAsFixed(2)}K';
     }
-    return GTag.neutral(label: badge);
+    return num.toString();
   }
-}
 
-class _StatItem extends StatelessWidget {
-  final IconData icon;
-  final String value;
-
-  const _StatItem(this.icon, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 11, color: GColors.textTertiary),
-        const Gap(2),
-        Text(value, style: GTextStyle.small),
-      ],
-    );
-  }
 }

@@ -25,9 +25,9 @@ class MockApi {
   Future<ApiResponse<User>> login(String email, String password) async {
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // 模拟验证
+    // Validate
     if (!email.contains('@')) {
-      return ApiResponse.error('邮箱格式不正确');
+      return ApiResponse.error('Invalid email format');
     }
 
     // 返回模拟用户
@@ -45,10 +45,10 @@ class MockApi {
     await Future.delayed(const Duration(milliseconds: 1000));
 
     if (!email.contains('@')) {
-      return ApiResponse.error('邮箱格式不正确');
+      return ApiResponse.error('Invalid email format');
     }
     if (password.length < 6) {
-      return ApiResponse.error('密码至少6位');
+      return ApiResponse.error('Password must be at least 6 characters');
     }
 
     return ApiResponse.success(User(
@@ -68,7 +68,7 @@ class MockApi {
     return ApiResponse.success(User(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
       email: email,
-      nickname: '$provider用户',
+      nickname: '$provider User',
       avatar: 'https://api.dicebear.com/7.x/pixel-art/png?seed=$email',
       createdAt: DateTime.now(),
     ));
@@ -82,7 +82,7 @@ class MockApi {
       Wallet(
         id: 'wallet_1',
         address: '0x89234f60876a79d78fe458d47184fa22a2634398',
-        name: '钱包1',
+        name: 'Wallet 1',
         balance: 0.707,
         chain: 'BSC',
         holdings: _generateMockHoldings(),
@@ -95,7 +95,7 @@ class MockApi {
     return _delay(ApiResponse.success(Wallet(
       id: walletId,
       address: '0x89234f60876a79d78fe458d47184fa22a2634398',
-      name: '钱包1',
+      name: 'Wallet 1',
       balance: 0.707,
       chain: 'BSC',
       holdings: _generateMockHoldings(),
@@ -190,8 +190,8 @@ class MockApi {
       Token(
         id: 'token_cong',
         address: '0x24...4444',
-        name: '聪比特币',
-        symbol: '聪比',
+        name: 'Satoshi BTC',
+        symbol: 'SBTC',
         logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
         price: 295590,
         marketCap: 879000000000,
@@ -530,7 +530,7 @@ class MockApi {
       Trader(
         id: 'trader_1',
         address: '0xcc1234567890abcdef1234567890abcdef8741',
-        nickname: '币圈老韭菜',
+        nickname: 'Crypto Veteran',
         rank: 1,
         profit7d: 18696.62,
         profitPercent7d: 156.8,

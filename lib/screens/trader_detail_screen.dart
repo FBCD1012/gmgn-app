@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_state.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../providers/trader_state.dart';
 import '../models/trader.dart';
 import 'copy_trade_settings_screen.dart';
 
@@ -65,7 +66,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: const Color(0xFF000000),
       body: Stack(
         children: [
           // 主内容
@@ -143,7 +144,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withAlpha(128),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -165,7 +166,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
                   letterSpacing: 12,
                   shadows: [
                     Shadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withAlpha(77),
                       blurRadius: 8,
                       offset: const Offset(2, 2),
                     ),
@@ -183,10 +184,10 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
                 height: 70,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                  border: Border.all(color: Colors.white.withAlpha(77), width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withAlpha(51),
                       blurRadius: 8,
                       offset: const Offset(2, 2),
                     ),
@@ -194,10 +195,10 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: Image.network(
-                    'https://api.dicebear.com/7.x/pixel-art/png?seed=${widget.trader['address']}',
+                  child: CachedNetworkImage(
+                    imageUrl: 'https://api.dicebear.com/7.x/pixel-art/png?seed=${widget.trader['address']}',
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
+                    errorWidget: (context, url, error) => Container(
                       color: Colors.grey[800],
                       child: const Icon(Icons.person, color: Colors.white, size: 32),
                     ),
@@ -212,26 +213,27 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
   }
 
   Widget _buildUserCard() {
-    return Consumer<AppState>(
-      builder: (context, appState, child) {
-        // 根据trader数据创建Trader对象
-        final traderId = widget.trader['address'] as String? ?? 'unknown';
-        final trader = Trader(
-          id: traderId,
-          address: widget.trader['address'] as String? ?? '',
-          nickname: widget.trader['nickname'] as String?,
-          avatar: 'https://api.dicebear.com/7.x/pixel-art/png?seed=${widget.trader['address']}',
-          rank: widget.trader['rank'] as int? ?? 0,
-          profit7d: (widget.trader['profit7d'] as num?)?.toDouble() ?? 0.0,
-          profitPercent7d: (widget.trader['profitPercent7d'] as num?)?.toDouble() ?? 0.0,
-          tradeCount7d: widget.trader['tradeCount7d'] as int? ?? 0,
-          winRate: (widget.trader['winRate'] as num?)?.toDouble() ?? 0.0,
-          followers: widget.trader['followers'] as int? ?? 1,
-          followedBy: widget.trader['followedBy'] as int? ?? 3,
-          balance: (widget.trader['balance'] as num?)?.toDouble() ?? 0.0,
-        );
+    // 根据trader数据创建Trader对象
+    final traderId = widget.trader['address'] as String? ?? 'unknown';
+    final trader = Trader(
+      id: traderId,
+      address: widget.trader['address'] as String? ?? '',
+      nickname: widget.trader['nickname'] as String?,
+      avatar: 'https://api.dicebear.com/7.x/pixel-art/png?seed=${widget.trader['address']}',
+      rank: widget.trader['rank'] as int? ?? 0,
+      profit7d: (widget.trader['profit7d'] as num?)?.toDouble() ?? 0.0,
+      profitPercent7d: (widget.trader['profitPercent7d'] as num?)?.toDouble() ?? 0.0,
+      tradeCount7d: widget.trader['tradeCount7d'] as int? ?? 0,
+      winRate: (widget.trader['winRate'] as num?)?.toDouble() ?? 0.0,
+      followers: widget.trader['followers'] as int? ?? 1,
+      followedBy: widget.trader['followedBy'] as int? ?? 3,
+      balance: (widget.trader['balance'] as num?)?.toDouble() ?? 0.0,
+    );
 
-        final isFollowing = appState.isTraderFollowed(trader.id);
+    // 使用 Selector 只监听关注状态变化
+    return Selector<TraderState, bool>(
+      selector: (_, state) => state.isTraderFollowed(trader.id),
+      builder: (context, isFollowing, child) {
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -247,10 +249,10 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    trader.avatar ?? 'https://api.dicebear.com/7.x/pixel-art/png?seed=${trader.address}',
+                  child: CachedNetworkImage(
+                    imageUrl: trader.avatar ?? 'https://api.dicebear.com/7.x/pixel-art/png?seed=${trader.address}',
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
+                    errorWidget: (context, url, error) => Container(
                       color: const Color(0xFF333333),
                       child: const Icon(Icons.person, color: Colors.white),
                     ),
@@ -289,10 +291,11 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
               // 关注按钮
               GestureDetector(
                 onTap: () {
+                  final traderState = context.read<TraderState>();
                   if (isFollowing) {
-                    appState.removeFollowedTrader(trader.id);
+                    traderState.removeFollowedTrader(trader.id);
                   } else {
-                    appState.addFollowedTrader(trader);
+                    traderState.addFollowedTrader(trader);
                   }
                 },
                 child: Container(
@@ -658,7 +661,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        color: Color(0xFF0D0D0D),
+        color: Color(0xFF000000),
         border: Border(
           top: BorderSide(color: Color(0xFF262626), width: 1),
         ),
@@ -681,7 +684,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00D26A).withOpacity(0.3),
+                  color: const Color(0xFF00D26A).withAlpha(77),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),

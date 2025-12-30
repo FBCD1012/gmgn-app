@@ -20,7 +20,7 @@ class CopyTradeSettingsScreen extends StatefulWidget {
   State<CopyTradeSettingsScreen> createState() => _CopyTradeSettingsScreenState();
 }
 
-class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with WidgetsBindingObserver {
+class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _positionCountController = TextEditingController();
   final TextEditingController _slippageController = TextEditingController();
@@ -28,6 +28,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
   final TextEditingController _maxGasController = TextEditingController();
   final FocusNode _amountFocus = FocusNode();
   final FocusNode _positionFocus = FocusNode();
+  final ScrollController _scrollController = ScrollController();
 
   // 钱包列表
   final List<Map<String, dynamic>> _wallets = [
@@ -78,12 +79,10 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _amountController.dispose();
     _positionCountController.dispose();
     _slippageController.dispose();
@@ -91,6 +90,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
     _maxGasController.dispose();
     _amountFocus.dispose();
     _positionFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -238,65 +238,47 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
     });
   }
 
-  double _lastBottomInset = 0;
-
-  @override
-  void didChangeMetrics() {
-    final bottomInset = WidgetsBinding.instance.platformDispatcher.views.first.viewInsets.bottom;
-
-    // 检测键盘从打开变为关闭
-    if (_lastBottomInset > 0 && bottomInset == 0) {
-      // 键盘刚收起，强制取消焦点并刷新布局
-      if (mounted) {
-        // 延迟执行，等待系统完成键盘动画
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) {
-            FocusScope.of(context).unfocus();
-            setState(() {});
-          }
-        });
-      }
-    }
-    _lastBottomInset = bottomInset;
-  }
-
   void _unfocusAll() {
-    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return GestureDetector(
       onTap: _unfocusAll,
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: _kBackgroundColor,
-        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomInset: false,
         appBar: _buildAppBar(),
         body: Column(
           children: [
-            // 可滚动内容
+            // Scrollable content
             Expanded(
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+                controller: _scrollController,
+                physics: const ClampingScrollPhysics(),
+                padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. 跟单钱包地址
+                    // 1. Target wallet address
                     _buildSection1(),
-                    // 2. 跟买设置
+                    // 2. Buy settings
                     _buildSection2(),
-                    // 3. 卖出设置
+                    // 3. Sell settings
                     _buildSection3(),
-                    // 过滤设置
+                    // Filter settings
                     _buildFilterSection(),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),
             ),
-            // 底部按钮 - 直接放在 Column 里
-            _buildBottomButton(),
+            // Bottom button - hide when keyboard is visible
+            if (bottomInset == 0) _buildBottomButton(),
           ],
         ),
       ),

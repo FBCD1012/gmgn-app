@@ -13,10 +13,21 @@ class MockApi {
 
   final Random _random = Random();
 
+  // 存储已注册的用户（邮箱 -> User）
+  final Map<String, User> _registeredUsers = {};
+
   // 模拟网络延迟
   Future<T> _delay<T>(T data, {int ms = 500}) async {
     await Future.delayed(Duration(milliseconds: ms));
     return data;
+  }
+
+  // 邮箱格式校验
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(email);
   }
 
   // ============ 用户相关 API ============
@@ -25,53 +36,77 @@ class MockApi {
   Future<ApiResponse<User>> login(String email, String password) async {
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Validate
-    if (!email.contains('@')) {
+    // 邮箱格式校验
+    if (!_isValidEmail(email)) {
       return ApiResponse.error('Invalid email format');
     }
 
-    // 返回模拟用户
-    return ApiResponse.success(User(
-      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-      email: email,
-      nickname: email.split('@')[0],
-      avatar: 'https://api.dicebear.com/7.x/pixel-art/png?seed=$email',
-      createdAt: DateTime.now(),
-    ));
+    // 检查用户是否已注册
+    final user = _registeredUsers[email.toLowerCase()];
+    if (user == null) {
+      return ApiResponse.error('Email not registered. Please sign up first.');
+    }
+
+    // 返回已注册的用户
+    return ApiResponse.success(user);
   }
 
   /// 注册
   Future<ApiResponse<User>> register(String email, String password) async {
     await Future.delayed(const Duration(milliseconds: 1000));
 
-    if (!email.contains('@')) {
-      return ApiResponse.error('Invalid email format');
-    }
-    if (password.length < 6) {
-      return ApiResponse.error('Password must be at least 6 characters');
+    // 邮箱格式校验
+    if (!_isValidEmail(email)) {
+      return ApiResponse.error('Invalid email format. Please enter a valid email address.');
     }
 
-    return ApiResponse.success(User(
+    // 检查邮箱是否已被注册
+    final emailLower = email.toLowerCase();
+    if (_registeredUsers.containsKey(emailLower)) {
+      return ApiResponse.error('Email already registered. Please login instead.');
+    }
+
+    // 创建新用户
+    final newUser = User(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
       email: email,
       nickname: email.split('@')[0],
       avatar: 'https://api.dicebear.com/7.x/pixel-art/png?seed=$email',
       createdAt: DateTime.now(),
-    ));
+    );
+
+    // 存储到已注册用户列表
+    _registeredUsers[emailLower] = newUser;
+
+    return ApiResponse.success(newUser);
   }
 
   /// 第三方登录
   Future<ApiResponse<User>> socialLogin(String provider) async {
     await Future.delayed(const Duration(milliseconds: 1200));
 
-    final email = '${provider.toLowerCase()}_user_${_random.nextInt(1000)}@example.com';
-    return ApiResponse.success(User(
+    // 使用固定的第三方登录邮箱（避免每次都创建新用户）
+    final email = '${provider.toLowerCase()}_user@example.com';
+    final emailLower = email.toLowerCase();
+
+    // 如果用户已存在，直接返回
+    if (_registeredUsers.containsKey(emailLower)) {
+      return ApiResponse.success(_registeredUsers[emailLower]!);
+    }
+
+    // 创建新的第三方登录用户
+    final newUser = User(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
       email: email,
       nickname: '$provider User',
       avatar: 'https://api.dicebear.com/7.x/pixel-art/png?seed=$email',
       createdAt: DateTime.now(),
-    ));
+    );
+
+    // 存储到已注册用户列表
+    _registeredUsers[emailLower] = newUser;
+
+    return ApiResponse.success(newUser);
   }
 
   // ============ 钱包相关 API ============

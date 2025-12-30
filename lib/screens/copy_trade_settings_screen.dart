@@ -23,8 +23,22 @@ class CopyTradeSettingsScreen extends StatefulWidget {
 class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with WidgetsBindingObserver {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _positionCountController = TextEditingController();
+  final TextEditingController _slippageController = TextEditingController();
+  final TextEditingController _gasController = TextEditingController(text: '2');
+  final TextEditingController _maxGasController = TextEditingController();
   final FocusNode _amountFocus = FocusNode();
   final FocusNode _positionFocus = FocusNode();
+
+  // 钱包列表
+  final List<Map<String, dynamic>> _wallets = [
+    {'name': 'Wallet1', 'balance': 0.0},
+    {'name': 'Wallet2', 'balance': 0.5},
+    {'name': 'Wallet3', 'balance': 1.2},
+  ];
+
+  // 买入模式
+  final List<String> _buyModes = ['Fixed Buy', 'Ratio Buy', 'Smart Buy'];
+  String _selectedBuyMode = 'Fixed Buy';
 
   String _selectedWallet = 'Wallet1';
   double _walletBalance = 0;
@@ -72,9 +86,156 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
     WidgetsBinding.instance.removeObserver(this);
     _amountController.dispose();
     _positionCountController.dispose();
+    _slippageController.dispose();
+    _gasController.dispose();
+    _maxGasController.dispose();
     _amountFocus.dispose();
     _positionFocus.dispose();
     super.dispose();
+  }
+
+  // 显示钱包选择器
+  void _showWalletPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _kCardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Select Wallet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+            const SizedBox(height: 16),
+            ..._wallets.map((wallet) => ListTile(
+              onTap: () {
+                setState(() {
+                  _selectedWallet = wallet['name'];
+                  _walletBalance = wallet['balance'];
+                });
+                Navigator.pop(context);
+              },
+              leading: Icon(Icons.folder_outlined, color: _selectedWallet == wallet['name'] ? _kPrimaryGreen : Colors.grey[400]),
+              title: Text(wallet['name'], style: TextStyle(color: _selectedWallet == wallet['name'] ? _kPrimaryGreen : Colors.white)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildBNBIcon(),
+                  const SizedBox(width: 6),
+                  Text('${wallet['balance']}', style: TextStyle(color: Colors.grey[400])),
+                ],
+              ),
+            )),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 显示买入模式选择器
+  void _showBuyModePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _kCardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Buy Mode', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+            const SizedBox(height: 16),
+            ..._buyModes.map((mode) => ListTile(
+              onTap: () {
+                setState(() => _selectedBuyMode = mode);
+                Navigator.pop(context);
+              },
+              title: Text(mode, style: TextStyle(color: _selectedBuyMode == mode ? _kPrimaryGreen : Colors.white)),
+              trailing: _selectedBuyMode == mode ? Icon(Icons.check, color: _kPrimaryGreen) : null,
+            )),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 显示说明弹窗
+  void _showInfoDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _kCardColor,
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        content: Text(content, style: TextStyle(color: Colors.grey[400])),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK', style: TextStyle(color: _kPrimaryGreen)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 显示数值编辑弹窗
+  void _showEditDialog(String title, String currentValue, String suffix, Function(double) onSave) {
+    final controller = TextEditingController(text: currentValue);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _kCardColor,
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            suffixText: suffix,
+            suffixStyle: TextStyle(color: Colors.grey[500]),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey[600]!)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _kPrimaryGreen)),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[500])),
+          ),
+          TextButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text);
+              if (value != null) {
+                onSave(value);
+              }
+              Navigator.pop(context);
+            },
+            child: Text('Save', style: TextStyle(color: _kPrimaryGreen)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 重置过滤设置
+  void _resetFilterSettings() {
+    setState(() {
+      _slippageAuto = true;
+      _slippageController.clear();
+      _gasAverage = true;
+      _gasController.text = '2';
+      _maxGasController.clear();
+      _antiMEV = true;
+      _autoApprove = true;
+    });
   }
 
   @override
@@ -95,55 +256,40 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
 
   @override
   Widget build(BuildContext context) {
-    // 获取键盘高度和安全区域
-    final mediaQuery = MediaQuery.of(context);
-    final keyboardHeight = mediaQuery.viewInsets.bottom;
-    final bottomPadding = mediaQuery.padding.bottom;
-    final isKeyboardOpen = keyboardHeight > 0;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return GestureDetector(
       onTap: _unfocusAll,
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: _kBackgroundColor,
-        // 关闭自动调整，手动处理
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         appBar: _buildAppBar(),
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              // 可滚动内容
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.only(
-                    bottom: isKeyboardOpen ? keyboardHeight : 0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 1. 跟单钱包地址
-                      _buildSection1(),
-                      // 2. 跟买设置
-                      _buildSection2(),
-                      // 3. 卖出设置
-                      _buildSection3(),
-                      // 过滤设置
-                      _buildFilterSection(),
-                      // 底部留白给按钮
-                      SizedBox(height: 82 + bottomPadding),
-                    ],
-                  ),
+        body: Column(
+          children: [
+            // 可滚动内容
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. 跟单钱包地址
+                    _buildSection1(),
+                    // 2. 跟买设置
+                    _buildSection2(),
+                    // 3. 卖出设置
+                    _buildSection3(),
+                    // 过滤设置
+                    _buildFilterSection(),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-        // 底部按钮用 bottomSheet 固定
-        bottomSheet: Container(
-          color: _kBackgroundColor,
-          child: _buildBottomButton(),
+            ),
+            // 底部按钮 - 直接放在 Column 里
+            _buildBottomButton(),
+          ],
         ),
       ),
     );
@@ -252,44 +398,64 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('2. Buy Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-              Row(
-                children: [
-                  Text('Fixed Buy', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
-                  Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey[400]),
-                ],
+              GestureDetector(
+                onTap: _showBuyModePicker,
+                child: Row(
+                  children: [
+                    Text(_selectedBuyMode, style: TextStyle(fontSize: 14, color: Colors.grey[400])),
+                    Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey[400]),
+                  ],
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           // 钱包选择器
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: _kCardColor, borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.folder_outlined, size: 18, color: Colors.grey[400]),
-                    const SizedBox(width: 8),
-                    Text(_selectedWallet, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
-                    Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey[400]),
-                    const Spacer(),
-                    _buildBNBIcon(),
-                    const SizedBox(width: 6),
-                    Text('${_walletBalance.toInt()}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('Warning: Balance below 0.05 BNB, copy trade may fail', style: TextStyle(fontSize: 12, color: _kErrorRed)),
+          GestureDetector(
+            onTap: _showWalletPicker,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: _kCardColor, borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.folder_outlined, size: 18, color: Colors.grey[400]),
+                      const SizedBox(width: 8),
+                      Text(_selectedWallet, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
+                      Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey[400]),
+                      const Spacer(),
+                      _buildBNBIcon(),
+                      const SizedBox(width: 6),
+                      Text(_walletBalance.toStringAsFixed(2), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
+                    ],
+                  ),
+                  if (_walletBalance < 0.05) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text('Warning: Balance below 0.05 BNB, copy trade may fail', style: TextStyle(fontSize: 12, color: _kErrorRed)),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            // TODO: 跳转到充值页面
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Top Up feature coming soon')),
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Text('Top Up', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
+                              Icon(Icons.chevron_right, size: 16, color: _kPrimaryGreen),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    Text('Top Up', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
-                    Icon(Icons.chevron_right, size: 16, color: _kPrimaryGreen),
                   ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -322,7 +488,13 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildCheckboxRow("Don't Buy Holdings", _noBuyHolding, (v) => setState(() => _noBuyHolding = v)),
-              Text('What is position count?', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              GestureDetector(
+                onTap: () => _showInfoDialog(
+                  'Position Count',
+                  'Position count limits how many times you will copy buy from this trader. For example, if set to 5, you will only copy the first 5 buy transactions.',
+                ),
+                child: Text('What is position count?', style: TextStyle(fontSize: 12, color: Colors.grey[500], decoration: TextDecoration.underline)),
+              ),
             ],
           ),
         ],
@@ -370,6 +542,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
   List<Widget> _buildTakeProfitRules() {
     List<Widget> widgets = [];
     for (int i = 0; i < _takeProfitRules.length; i++) {
+      final index = i;
       widgets.add(Padding(
         padding: const EdgeInsets.only(top: 12),
         child: Column(
@@ -378,9 +551,27 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
               children: [
                 Text('#${i + 1}', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
                 const SizedBox(width: 12),
-                Expanded(child: _buildRuleInput('Stop Loss', '${_takeProfitRules[i]['stopLoss']}', '%')),
+                Expanded(
+                  child: _buildEditableRuleInput(
+                    'Stop Loss',
+                    '${_takeProfitRules[i]['stopLoss']}',
+                    '%',
+                    () => _showEditDialog('Stop Loss', '${_takeProfitRules[index]['stopLoss']}', '%', (v) {
+                      setState(() => _takeProfitRules[index]['stopLoss'] = v.toInt());
+                    }),
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _buildRuleInput('Sell Ratio', '${_takeProfitRules[i]['sellRatio']}', '%')),
+                Expanded(
+                  child: _buildEditableRuleInput(
+                    'Sell Ratio',
+                    '${_takeProfitRules[i]['sellRatio']}',
+                    '%',
+                    () => _showEditDialog('Sell Ratio', '${_takeProfitRules[index]['sellRatio']}', '%', (v) {
+                      setState(() => _takeProfitRules[index]['sellRatio'] = v.toInt());
+                    }),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => setState(() => _takeProfitRules.removeAt(i)),
@@ -422,9 +613,27 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
       padding: const EdgeInsets.only(top: 12),
       child: Row(
         children: [
-          Expanded(child: _buildRuleInput('Dev Sell ≥', '$_devSellThreshold', '%')),
+          Expanded(
+            child: _buildEditableRuleInput(
+              'Dev Sell ≥',
+              '${_devSellThreshold.toInt()}',
+              '%',
+              () => _showEditDialog('Dev Sell Threshold', '$_devSellThreshold', '%', (v) {
+                setState(() => _devSellThreshold = v);
+              }),
+            ),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: _buildRuleInput('Auto Sell', '$_devAutoSellRatio', '%')),
+          Expanded(
+            child: _buildEditableRuleInput(
+              'Auto Sell',
+              '${_devAutoSellRatio.toInt()}',
+              '%',
+              () => _showEditDialog('Auto Sell Ratio', '$_devAutoSellRatio', '%', (v) {
+                setState(() => _devAutoSellRatio = v);
+              }),
+            ),
+          ),
         ],
       ),
     );
@@ -434,7 +643,14 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
   Widget _buildMigrationSellSettings() {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: _buildRuleInput('Migration Sell', '$_migrationSellRatio', '%'),
+      child: _buildEditableRuleInput(
+        'Migration Sell',
+        '${_migrationSellRatio.toInt()}',
+        '%',
+        () => _showEditDialog('Migration Sell Ratio', '$_migrationSellRatio', '%', (v) {
+          setState(() => _migrationSellRatio = v);
+        }),
+      ),
     );
   }
 
@@ -454,9 +670,16 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
             children: [
               const Text('Filter Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
               const SizedBox(width: 12),
-              Icon(Icons.refresh, size: 16, color: Colors.grey[500]),
-              const SizedBox(width: 4),
-              Text('Reset', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+              GestureDetector(
+                onTap: _resetFilterSettings,
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, size: 16, color: Colors.grey[500]),
+                    const SizedBox(width: 4),
+                    Text('Reset', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                  ],
+                ),
+              ),
               const Spacer(),
               GestureDetector(
                 onTap: () => setState(() => _filterExpanded = !_filterExpanded),
@@ -565,7 +788,22 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text('Custom', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+                        child: _slippageAuto
+                            ? Text('Custom', style: TextStyle(fontSize: 14, color: Colors.grey[500]))
+                            : TextField(
+                                controller: _slippageController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                textInputAction: TextInputAction.done,
+                                onEditingComplete: _unfocusAll,
+                                style: const TextStyle(fontSize: 14, color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: 'Custom',
+                                  hintStyle: TextStyle(color: Colors.grey[500]),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
                       ),
                       Text('%', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
                     ],
@@ -622,26 +860,45 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _kInputColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(_gasCustom, style: const TextStyle(fontSize: 13, color: Colors.white)),
-                          ),
-                          Text('Gwei', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-                        ],
+                    child: GestureDetector(
+                      onTap: () => setState(() => _gasAverage = false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: !_gasAverage ? _kBorderColor : _kInputColor,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _gasAverage
+                                  ? Text(_gasController.text, style: const TextStyle(fontSize: 13, color: Colors.white))
+                                  : TextField(
+                                      controller: _gasController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      textInputAction: TextInputAction.done,
+                                      onEditingComplete: _unfocusAll,
+                                      style: const TextStyle(fontSize: 13, color: Colors.white),
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                            ),
+                            Text('Gwei', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Text('Max Auto Gas', style: TextStyle(fontSize: 13, color: Colors.grey[500], decoration: TextDecoration.underline)),
+              GestureDetector(
+                onTap: () => _showInfoDialog('Max Auto Gas', 'Maximum gas fee for auto transactions. Leave empty for no limit.'),
+                child: Text('Max Auto Gas', style: TextStyle(fontSize: 13, color: Colors.grey[500], decoration: TextDecoration.underline)),
+              ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -652,7 +909,20 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text('Custom', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                      child: TextField(
+                        controller: _maxGasController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        textInputAction: TextInputAction.done,
+                        onEditingComplete: _unfocusAll,
+                        style: const TextStyle(fontSize: 13, color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Custom',
+                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
                     ),
                     Text('GWei', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
                   ],
@@ -782,6 +1052,27 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
           const SizedBox(width: 4),
           Text(suffix, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEditableRuleInput(String label, String value, String suffix, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(color: _kInputColor, borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          children: [
+            Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+            const Spacer(),
+            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white)),
+            const SizedBox(width: 4),
+            Text(suffix, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+            const SizedBox(width: 4),
+            Icon(Icons.edit, size: 12, color: Colors.grey[600]),
+          ],
+        ),
       ),
     );
   }

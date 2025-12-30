@@ -244,39 +244,49 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _unfocusAll,
-      behavior: HitTestBehavior.opaque,
-      child: Scaffold(
-        backgroundColor: _kBackgroundColor,
-        resizeToAvoidBottomInset: false,
-        appBar: _buildAppBar(),
-        body: Column(
-          children: [
-            // Scrollable content - completely independent from keyboard
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const ClampingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Target wallet address
-                    _buildSection1(),
-                    // 2. Buy settings
-                    _buildSection2(),
-                    // 3. Sell settings
-                    _buildSection3(),
-                    // Filter settings
-                    _buildFilterSection(),
-                    const SizedBox(height: 100),
-                  ],
+    // Lock MediaQuery to prevent keyboard-related rebuilds
+    final originalMediaQuery = MediaQuery.of(context);
+    final fixedMediaQuery = originalMediaQuery.copyWith(
+      viewInsets: EdgeInsets.zero, // Always zero, ignore keyboard
+      viewPadding: originalMediaQuery.viewPadding,
+    );
+
+    return MediaQuery(
+      data: fixedMediaQuery,
+      child: GestureDetector(
+        onTap: _unfocusAll,
+        behavior: HitTestBehavior.opaque,
+        child: Scaffold(
+          backgroundColor: _kBackgroundColor,
+          resizeToAvoidBottomInset: false,
+          appBar: _buildAppBar(),
+          body: Column(
+            children: [
+              // Scrollable content - completely independent from keyboard
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const ClampingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Target wallet address
+                      _buildSection1(),
+                      // 2. Buy settings
+                      _buildSection2(),
+                      // 3. Sell settings
+                      _buildSection3(),
+                      // Filter settings
+                      _buildFilterSection(),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            // Bottom button - always visible, keyboard overlays on top
-            _buildBottomButton(),
-          ],
+              // Bottom button - always visible, keyboard overlays on top
+              _buildBottomButton(),
+            ],
+          ),
         ),
       ),
     );

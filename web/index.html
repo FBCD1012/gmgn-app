@@ -19,7 +19,7 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="GMGN - Crypto Trading App">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual">
   <meta name="theme-color" content="#000000">
 
   <!-- iOS meta tags & icons -->
@@ -34,20 +34,146 @@
   <title>GMGN</title>
   <link rel="manifest" href="manifest.json">
   <style>
-    html, body {
+    :root {
+      --app-height: 100%;
+    }
+    html {
       height: 100%;
+      height: var(--app-height);
+      width: 100%;
+      overflow: hidden;
+    }
+    body {
+      height: 100%;
+      height: var(--app-height);
       width: 100%;
       margin: 0;
       padding: 0;
       overflow: hidden;
       background-color: #000000;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      position: relative;
+      /* 防止 Android 键盘收起后布局问题 */
+      min-height: 100%;
+      min-height: var(--app-height);
+    }
+    /* 防止键盘弹出时页面缩放 */
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+    /* 使用 dvh 作为现代浏览器的备选 */
+    @supports (height: 100dvh) {
+      :root {
+        --app-height: 100dvh;
+      }
+    }
+    /* Flutter 容器 */
+    flt-glass-pane {
+      height: 100% !important;
+      min-height: 100% !important;
     }
   </style>
+  <script>
+    // 处理虚拟键盘弹出和收起 - Android 兼容修复
+    (function() {
+      var root = document.documentElement;
+      var initialHeight = window.innerHeight;
+      var isKeyboardOpen = false;
+      var isAndroid = /Android/i.test(navigator.userAgent);
+
+      // 设置 CSS 变量来控制高度
+      function setAppHeight(height) {
+        root.style.setProperty('--app-height', height ? height + 'px' : '100dvh');
+      }
+
+      // 恢复到初始高度
+      function resetHeight() {
+        // 清除内联样式
+        document.body.style.height = '';
+        document.documentElement.style.height = '';
+        // 重置 CSS 变量
+        setAppHeight(null);
+        // 强制重排
+        void document.body.offsetHeight;
+        // 重置滚动
+        window.scrollTo(0, 0);
+        // 更新初始高度
+        requestAnimationFrame(function() {
+          initialHeight = window.innerHeight;
+        });
+      }
+
+      if ('visualViewport' in window) {
+        var vv = window.visualViewport;
+
+        vv.addEventListener('resize', function() {
+          var currentHeight = vv.height;
+          var heightDiff = initialHeight - currentHeight;
+
+          if (heightDiff > 150) {
+            // 键盘弹出
+            isKeyboardOpen = true;
+            setAppHeight(currentHeight);
+          } else if (isKeyboardOpen) {
+            // 键盘收起
+            isKeyboardOpen = false;
+            resetHeight();
+          }
+        });
+
+        vv.addEventListener('scroll', function() {
+          window.scrollTo(0, 0);
+        });
+      }
+
+      // Android 专用修复
+      if (isAndroid) {
+        var focusTimer = null;
+
+        document.addEventListener('focusin', function(e) {
+          var tag = e.target.tagName;
+          if (tag === 'INPUT' || tag === 'TEXTAREA') {
+            clearTimeout(focusTimer);
+            isKeyboardOpen = true;
+          }
+        });
+
+        document.addEventListener('focusout', function(e) {
+          var tag = e.target.tagName;
+          if (tag === 'INPUT' || tag === 'TEXTAREA') {
+            clearTimeout(focusTimer);
+            // 延迟处理，等待 visualViewport 更新
+            focusTimer = setTimeout(function() {
+              if (!document.activeElement ||
+                  (document.activeElement.tagName !== 'INPUT' &&
+                   document.activeElement.tagName !== 'TEXTAREA')) {
+                isKeyboardOpen = false;
+                resetHeight();
+              }
+            }, 200);
+          }
+        });
+
+        // window.resize 兜底
+        window.addEventListener('resize', function() {
+          if (!isKeyboardOpen) {
+            initialHeight = Math.max(initialHeight, window.innerHeight);
+          }
+        });
+
+        // orientationchange 处理横竖屏切换
+        window.addEventListener('orientationchange', function() {
+          setTimeout(function() {
+            isKeyboardOpen = false;
+            initialHeight = window.innerHeight;
+            resetHeight();
+          }, 300);
+        });
+      }
+
+      // 初始化高度
+      setAppHeight(null);
+    })();
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

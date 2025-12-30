@@ -128,13 +128,6 @@ class TokenCard extends StatelessWidget {
                     ),
             ],
           ),
-          const Gap(GSpacing.md),
-          // 买入按钮
-          GButton.outline(
-            icon: Icons.flash_on,
-            text: '买',
-            color: GColors.green,
-          ),
         ],
       ),
     );

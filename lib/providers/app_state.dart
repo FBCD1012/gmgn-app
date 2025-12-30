@@ -322,7 +322,18 @@ class AppState extends ChangeNotifier {
 
   /// 买入代币
   Future<TradeResult?> buyToken(String tokenId, double amount, {String? tokenSymbol, String? tokenName}) async {
-    if (_currentWallet == null) return null;
+    // Auto-create wallet if not exists
+    if (_currentWallet == null) {
+      _currentWallet = Wallet(
+        id: 'wallet_default',
+        address: '0x89234f60876a79d78fe458d47184fa22a2634398',
+        name: 'Wallet 1',
+        balance: 1.0,
+        chain: 'BSC',
+        holdings: [],
+      );
+      _wallets = [_currentWallet!];
+    }
 
     _isLoading = true;
     notifyListeners();
@@ -354,7 +365,18 @@ class AppState extends ChangeNotifier {
 
   /// 卖出代币
   Future<TradeResult?> sellToken(String tokenId, double tokenAmount, {String? tokenSymbol, String? tokenName}) async {
-    if (_currentWallet == null) return null;
+    // Auto-create wallet if not exists
+    if (_currentWallet == null) {
+      _currentWallet = Wallet(
+        id: 'wallet_default',
+        address: '0x89234f60876a79d78fe458d47184fa22a2634398',
+        name: 'Wallet 1',
+        balance: 1.0,
+        chain: 'BSC',
+        holdings: [],
+      );
+      _wallets = [_currentWallet!];
+    }
 
     _isLoading = true;
     notifyListeners();

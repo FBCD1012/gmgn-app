@@ -25,6 +25,8 @@ class _DepositSheetState extends State<DepositSheet> {
   final String _walletAddress = '0x89234f60876a79d78fe458d47184fa22a2634398';
   final String _qrData = '0x89234f60876a79d78fe458d47184fa22a2634398\n\n🚀 May your crypto moon! WAGMI!\n💰 Bull run incoming, LFG!\n🌙 To The Moon! See you at the top!';
   bool _isDepositing = false;
+  bool _showSuccess = false;
+  String _successMessage = '';
 
   void _copyAddress() {
     Clipboard.setData(ClipboardData(text: _walletAddress));
@@ -170,7 +172,6 @@ class _DepositSheetState extends State<DepositSheet> {
     // 提前捕获 context 相关对象，避免异步后使用
     final walletState = context.read<WalletState>();
     final appState = context.read<AppState>();
-    final messenger = ScaffoldMessenger.of(context);
 
     // 模拟充值延迟
     await Future.delayed(const Duration(seconds: 2));
@@ -197,24 +198,19 @@ class _DepositSheetState extends State<DepositSheet> {
 
     if (!mounted) return;
 
-    setState(() => _isDepositing = false);
+    setState(() {
+      _isDepositing = false;
+      _showSuccess = success;
+      _successMessage = success ? 'Deposit success! +0.1 BNB' : 'Deposit failed, please try again';
+    });
 
+    // 3秒后自动隐藏成功提示
     if (success) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Deposit success! +0.1 BNB'),
-          backgroundColor: Color(0xFF4ADE80),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } else {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Deposit failed, please try again'),
-          backgroundColor: Color(0xFFFF4757),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() => _showSuccess = false);
+        }
+      });
     }
   }
 
@@ -273,6 +269,59 @@ class _DepositSheetState extends State<DepositSheet> {
                   ],
                 ),
               ),
+              // 成功提示
+              if (_showSuccess)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _successMessage.contains('success')
+                        ? const Color(0xFF4ADE80).withOpacity(0.15)
+                        : const Color(0xFFFF4757).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _successMessage.contains('success')
+                          ? const Color(0xFF4ADE80)
+                          : const Color(0xFFFF4757),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _successMessage.contains('success')
+                            ? Icons.check_circle
+                            : Icons.error,
+                        color: _successMessage.contains('success')
+                            ? const Color(0xFF4ADE80)
+                            : const Color(0xFFFF4757),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _successMessage,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _successMessage.contains('success')
+                                ? const Color(0xFF4ADE80)
+                                : const Color(0xFFFF4757),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(() => _showSuccess = false),
+                        child: Icon(
+                          Icons.close,
+                          color: Colors.grey[500],
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_showSuccess) const SizedBox(height: 12),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -367,9 +416,9 @@ class _DepositSheetState extends State<DepositSheet> {
                             // 二维码区域
                             Center(
                               child: Container(
-                                width: 180,
-                                height: 180,
-                                padding: const EdgeInsets.all(12),
+                                width: 160,
+                                height: 160,
+                                padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
@@ -377,7 +426,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                 child: QrImageView(
                                   data: _qrData,
                                   version: QrVersions.auto,
-                                  size: 156,
+                                  size: 140,
                                   backgroundColor: Colors.white,
                                   eyeStyle: const QrEyeStyle(
                                     eyeShape: QrEyeShape.square,
@@ -390,7 +439,7 @@ class _DepositSheetState extends State<DepositSheet> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 16),
                             // 钱包地址
                             Row(
                               children: [
@@ -453,45 +502,50 @@ class _DepositSheetState extends State<DepositSheet> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // 模拟充值按钮 (测试用)
-                      GestureDetector(
-                        onTap: _isDepositing ? null : _simulateDeposit,
-                        child: Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0B90B),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: _isDepositing
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.add, color: Colors.black, size: 20),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Simulate Deposit 0.1 BNB (Test)',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
                     ],
+                  ),
+                ),
+              ),
+              // 模拟充值按钮 (固定在底部)
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: GestureDetector(
+                    onTap: _isDepositing ? null : _simulateDeposit,
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0B90B),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: _isDepositing
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add, color: Colors.black, size: 20),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Simulate Deposit 0.1 BNB (Test)',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                      ),
+                    ),
                   ),
                 ),
               ),

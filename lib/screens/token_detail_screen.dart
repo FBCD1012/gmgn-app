@@ -119,11 +119,22 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
 
     final appState = context.read<AppState>();
     final walletState = context.read<WalletState>();
-    final result = await appState.buyToken(widget.tokenId, amount);
+    final result = await appState.buyToken(
+      widget.tokenId,
+      amount,
+      tokenSymbol: _getSymbol(),
+      tokenName: _getName(),
+    );
 
-    // 同步更新 WalletState
+    // Update wallet holdings
     if (result != null && result.success) {
-      walletState.refreshWallet();
+      walletState.addHolding(
+        tokenId: widget.tokenId,
+        symbol: _getSymbol(),
+        name: _getName(),
+        amount: result.tokenAmount,
+        bnbCost: amount,
+      );
     }
 
     if (!mounted) return;
@@ -151,11 +162,20 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
 
     final appState = context.read<AppState>();
     final walletState = context.read<WalletState>();
-    final result = await appState.sellToken(widget.tokenId, tokenAmount);
+    final result = await appState.sellToken(
+      widget.tokenId,
+      tokenAmount,
+      tokenSymbol: _getSymbol(),
+      tokenName: _getName(),
+    );
 
-    // 同步更新 WalletState
+    // Update wallet holdings
     if (result != null && result.success) {
-      walletState.refreshWallet();
+      walletState.removeHolding(
+        tokenId: widget.tokenId,
+        amount: tokenAmount,
+        bnbReceived: result.bnbAmount ?? 0,
+      );
     }
 
     if (!mounted) return;

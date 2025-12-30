@@ -108,7 +108,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
         child: const Icon(Icons.arrow_back, color: Colors.white),
       ),
       title: const Text(
-        '钱包跟单',
+        'Copy Trade',
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -125,7 +125,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
               children: [
                 Icon(Icons.school_outlined, size: 18, color: Colors.grey[400]),
                 const SizedBox(width: 4),
-                Text('教程', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
+                Text('Tutorial', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
               ],
             ),
           ),
@@ -142,7 +142,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '1.跟单钱包地址',
+            '1. Target Wallet Address',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 12),
@@ -201,10 +201,10 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('2.跟买设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              const Text('2. Buy Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
               Row(
                 children: [
-                  Text('固定买入', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
+                  Text('Fixed Buy', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
                   Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey[400]),
                 ],
               ),
@@ -233,9 +233,9 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('提示: 余额小于0.05 BNB, 跟单可能失败，请及时充值', style: TextStyle(fontSize: 12, color: _kErrorRed)),
+                      child: Text('Warning: Balance below 0.05 BNB, copy trade may fail', style: TextStyle(fontSize: 12, color: _kErrorRed)),
                     ),
-                    Text('去充值', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
+                    Text('Top Up', style: TextStyle(fontSize: 12, color: _kPrimaryGreen)),
                     Icon(Icons.chevron_right, size: 16, color: _kPrimaryGreen),
                   ],
                 ),
@@ -244,9 +244,9 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
           ),
           const SizedBox(height: 12),
           // 数量输入
-          _buildInputField(_amountController, '数量', 'BNB'),
+          _buildInputField(_amountController, 'Amount', 'BNB'),
           const SizedBox(height: 6),
-          Text('请输入数量', style: TextStyle(fontSize: 12, color: _kErrorRed)),
+          Text('Please enter amount', style: TextStyle(fontSize: 12, color: _kErrorRed)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -254,7 +254,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
               Text('≈\$0(BNB)', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
               Row(
                 children: [
-                  Text('余额:${_walletBalance.toInt()} BNB', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  Text('Balance: ${_walletBalance.toInt()} BNB', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                   const SizedBox(width: 4),
                   Container(
                     width: 18, height: 18,
@@ -266,13 +266,13 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildInputField(_positionCountController, '加仓次数', '次'),
+          _buildInputField(_positionCountController, 'Position Count', 'times'),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildCheckboxRow('不买持仓', _noBuyHolding, (v) => setState(() => _noBuyHolding = v)),
-              Text('什么是加仓次数?', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              _buildCheckboxRow("Don't Buy Holdings", _noBuyHolding, (v) => setState(() => _noBuyHolding = v)),
+              Text('What is position count?', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
             ],
           ),
         ],
@@ -287,30 +287,30 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('3.卖出设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+          const Text('3. Sell Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
           const SizedBox(height: 12),
 
           // 自动跟卖
-          _buildCheckboxRow('自动跟卖', _autoFollowSell, (v) => setState(() => _autoFollowSell = v), underline: true),
+          _buildCheckboxRow('Auto Follow Sell', _autoFollowSell, (v) => setState(() => _autoFollowSell = v), underline: true),
           const SizedBox(height: 12),
 
           // 分批止盈止损
-          _buildCheckboxRow('分批止盈止损', _batchTakeProfit, (v) => setState(() => _batchTakeProfit = v), underline: true),
+          _buildCheckboxRow('Batch TP/SL', _batchTakeProfit, (v) => setState(() => _batchTakeProfit = v), underline: true),
           if (_batchTakeProfit) ..._buildTakeProfitRules(),
           const SizedBox(height: 12),
 
           // Dev卖
-          _buildCheckboxRow('Dev卖', _devSell, (v) => setState(() => _devSell = v), underline: true),
+          _buildCheckboxRow('Dev Sell', _devSell, (v) => setState(() => _devSell = v), underline: true),
           if (_devSell) _buildDevSellSettings(),
           const SizedBox(height: 12),
 
           // 迁移自动卖
-          _buildCheckboxRow('迁移自动卖', _migrationAutoSell, (v) => setState(() => _migrationAutoSell = v), underline: true),
+          _buildCheckboxRow('Migration Auto Sell', _migrationAutoSell, (v) => setState(() => _migrationAutoSell = v), underline: true),
           if (_migrationAutoSell) _buildMigrationSellSettings(),
           const SizedBox(height: 12),
 
           // 单次止盈止损
-          _buildCheckboxRow('单次止盈止损', _singleTakeProfit, (v) => setState(() => _singleTakeProfit = v), underline: true),
+          _buildCheckboxRow('Single TP/SL', _singleTakeProfit, (v) => setState(() => _singleTakeProfit = v), underline: true),
         ],
       ),
     );
@@ -328,9 +328,9 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
               children: [
                 Text('#${i + 1}', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
                 const SizedBox(width: 12),
-                Expanded(child: _buildRuleInput('止损比例', '${_takeProfitRules[i]['stopLoss']}', '%')),
+                Expanded(child: _buildRuleInput('Stop Loss', '${_takeProfitRules[i]['stopLoss']}', '%')),
                 const SizedBox(width: 8),
-                Expanded(child: _buildRuleInput('卖出比例', '${_takeProfitRules[i]['sellRatio']}', '%')),
+                Expanded(child: _buildRuleInput('Sell Ratio', '${_takeProfitRules[i]['sellRatio']}', '%')),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => setState(() => _takeProfitRules.removeAt(i)),
@@ -357,7 +357,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
             children: [
               Icon(Icons.add, size: 18, color: Colors.grey[400]),
               const SizedBox(width: 4),
-              Text('添加规则', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
+              Text('Add Rule', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
             ],
           ),
         ),
@@ -372,9 +372,9 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
       padding: const EdgeInsets.only(top: 12),
       child: Row(
         children: [
-          Expanded(child: _buildRuleInput('Dev卖≥', '$_devSellThreshold', '%')),
+          Expanded(child: _buildRuleInput('Dev Sell ≥', '$_devSellThreshold', '%')),
           const SizedBox(width: 8),
-          Expanded(child: _buildRuleInput('自动卖', '$_devAutoSellRatio', '%')),
+          Expanded(child: _buildRuleInput('Auto Sell', '$_devAutoSellRatio', '%')),
         ],
       ),
     );
@@ -384,7 +384,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
   Widget _buildMigrationSellSettings() {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: _buildRuleInput('迁移自动卖', '$_migrationSellRatio', '%'),
+      child: _buildRuleInput('Migration Sell', '$_migrationSellRatio', '%'),
     );
   }
 
@@ -402,17 +402,17 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
           // 过滤设置标题
           Row(
             children: [
-              const Text('过滤设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              const Text('Filter Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
               const SizedBox(width: 12),
               Icon(Icons.refresh, size: 16, color: Colors.grey[500]),
               const SizedBox(width: 4),
-              Text('重置', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+              Text('Reset', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
               const Spacer(),
               GestureDetector(
                 onTap: () => setState(() => _filterExpanded = !_filterExpanded),
                 child: Row(
                   children: [
-                    Text(_filterExpanded ? '收起' : '展开', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                    Text(_filterExpanded ? 'Collapse' : 'Expand', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
                     Icon(_filterExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 20, color: Colors.grey[500]),
                   ],
                 ),
@@ -435,11 +435,11 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
             const SizedBox(height: 20),
 
             // 防夹模式
-            _buildSwitchRow('防夹模式(Anti-MEV)', _antiMEV, (v) => setState(() => _antiMEV = v), icon: Icons.security),
+            _buildSwitchRow('Anti-MEV Mode', _antiMEV, (v) => setState(() => _antiMEV = v), icon: Icons.security),
             const SizedBox(height: 12),
 
             // 自动授权
-            _buildSwitchRow('自动授权', _autoApprove, (v) => setState(() => _autoApprove = v)),
+            _buildSwitchRow('Auto Approve', _autoApprove, (v) => setState(() => _autoApprove = v)),
           ],
         ],
       ),
@@ -452,7 +452,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
       children: [
         Icon(Icons.flash_on, size: 16, color: Colors.grey[500]),
         const SizedBox(width: 4),
-        Text('自动', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+        Text('Auto', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
         const SizedBox(width: 12),
         Icon(Icons.local_gas_station, size: 16, color: Colors.grey[500]),
         const SizedBox(width: 4),
@@ -460,13 +460,13 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
         const SizedBox(width: 12),
         Icon(Icons.security, size: 16, color: Colors.grey[500]),
         const SizedBox(width: 4),
-        Text('开', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+        Text('On', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
         const SizedBox(width: 12),
         Icon(Icons.person, size: 16, color: Colors.grey[500]),
         const SizedBox(width: 4),
-        Text('开', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+        Text('On', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
         const Spacer(),
-        Text('收起', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+        Text('Collapse', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
         Icon(Icons.keyboard_arrow_up, size: 20, color: Colors.grey[500]),
       ],
     );
@@ -479,7 +479,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
       children: [
         Row(
           children: [
-            Text('滑点限制', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
+            Text('Slippage Limit', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
             const SizedBox(width: 4),
             Icon(Icons.flash_on, size: 14, color: Colors.grey[500]),
           ],
@@ -497,7 +497,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
-                    child: Text('自动', style: TextStyle(fontSize: 14, color: _slippageAuto ? Colors.white : Colors.grey[500])),
+                    child: Text('Auto', style: TextStyle(fontSize: 14, color: _slippageAuto ? Colors.white : Colors.grey[500])),
                   ),
                 ),
               ),
@@ -515,7 +515,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text('自定义', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+                        child: Text('Custom', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
                       ),
                       Text('%', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
                     ],
@@ -534,7 +534,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('费用设置', style: TextStyle(fontSize: 14, color: Colors.white)),
+        const Text('Fee Settings', style: TextStyle(fontSize: 14, color: Colors.white)),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(12),
@@ -547,7 +547,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
             children: [
               Row(
                 children: [
-                  Text('Gas费用(Gwei)', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                  Text('Gas Fee (Gwei)', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
                   const SizedBox(width: 4),
                   Icon(Icons.local_gas_station, size: 14, color: Colors.grey[500]),
                 ],
@@ -565,7 +565,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
-                          child: Text('平均 0.12', style: TextStyle(fontSize: 13, color: _gasAverage ? Colors.white : Colors.grey[500])),
+                          child: Text('Avg 0.12', style: TextStyle(fontSize: 13, color: _gasAverage ? Colors.white : Colors.grey[500])),
                         ),
                       ),
                     ),
@@ -591,7 +591,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              Text('最大自动gas', style: TextStyle(fontSize: 13, color: Colors.grey[500], decoration: TextDecoration.underline)),
+              Text('Max Auto Gas', style: TextStyle(fontSize: 13, color: Colors.grey[500], decoration: TextDecoration.underline)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -602,7 +602,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text('自定义', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                      child: Text('Custom', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
                     ),
                     Text('GWei', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
                   ],
@@ -672,7 +672,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
             ),
             child: const Center(
               child: Text(
-                '开始跟单',
+                'Start Copy Trade',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black),
               ),
             ),
@@ -769,7 +769,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
     final amountText = _amountController.text.trim();
     if (amountText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入跟单数量'), backgroundColor: _kErrorRed),
+        const SnackBar(content: Text('Please enter amount'), backgroundColor: _kErrorRed),
       );
       return;
     }
@@ -777,7 +777,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
     final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入有效的数量'), backgroundColor: _kErrorRed),
+        const SnackBar(content: Text('Please enter a valid amount'), backgroundColor: _kErrorRed),
       );
       return;
     }
@@ -855,7 +855,7 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
     // 显示成功提示
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('跟单设置成功！'),
+        content: Text('Copy trade setup successful!'),
         backgroundColor: _kPrimaryGreen,
         duration: Duration(seconds: 2),
       ),

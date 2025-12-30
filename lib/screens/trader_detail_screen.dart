@@ -282,7 +282,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '粉丝 ${widget.trader['followers'] ?? 1}  被备注 ${widget.trader['followedBy'] ?? 3}',
+                      'Following ${widget.trader['followers'] ?? 1}  Followers ${widget.trader['followedBy'] ?? 3}',
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
@@ -316,7 +316,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isFollowing ? '已关注' : '关注',
+                        isFollowing ? 'Following' : 'Follow',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -349,7 +349,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
               size: 18, color: Colors.grey[500]),
           const SizedBox(width: 8),
           const Text(
-            '钱包余额',
+            'Wallet Balance',
             style: TextStyle(
               fontSize: 14,
               color: Colors.white,
@@ -384,8 +384,8 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
         dividerColor: Colors.transparent,
         tabs: const [
           Tab(text: 'PnL'),
-          Tab(text: '分析'),
-          Tab(text: '盈利分布'),
+          Tab(text: 'Analysis'),
+          Tab(text: 'Profit Distribution'),
         ],
       ),
     );
@@ -398,7 +398,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // 钓鱼检测标签
+          // Phishing detection label
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -406,7 +406,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text(
-              '钓鱼检测',
+              'Phishing Detection',
               style: TextStyle(fontSize: 11, color: Colors.white),
             ),
           ),
@@ -443,12 +443,12 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
 
   Widget _buildStatsGrid() {
     final stats = [
-      {'label': '7d 交易数', 'value': '14313 (7017/7296)'},
-      {'label': '7d 平均持仓时长', 'value': '3d'},
-      {'label': '7d 买入总成本', 'value': '2.24K BNB'},
-      {'label': '7d 代币平均买入成本', 'value': '0.319 BNB'},
-      {'label': '7d 代币平均实现利润', 'value': '+0.0x528 BNB', 'isProfit': true},
-      {'label': '7d 手续费', 'value': '0.0856 BNB'},
+      {'label': '7d Trades', 'value': '14313 (7017/7296)'},
+      {'label': '7d Avg Hold Time', 'value': '3d'},
+      {'label': '7d Total Buy Cost', 'value': '2.24K BNB'},
+      {'label': '7d Avg Token Buy Cost', 'value': '0.319 BNB'},
+      {'label': '7d Avg Realized Profit', 'value': '+0.0x528 BNB', 'isProfit': true},
+      {'label': '7d Fees', 'value': '0.0856 BNB'},
     ];
 
     return Container(
@@ -489,7 +489,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
       child: Row(
         children: [
           const Text(
-            '持仓',
+            'Holdings',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -498,14 +498,14 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
           ),
           const SizedBox(width: 16),
           Text(
-            '活动',
+            'Activity',
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const Spacer(),
           Icon(Icons.filter_list, size: 18, color: Colors.grey[500]),
           const SizedBox(width: 4),
           Text(
-            '最后活跃排序',
+            'Sort by Last Active',
             style: TextStyle(fontSize: 12, color: Colors.grey[500]),
           ),
         ],
@@ -518,7 +518,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          // 表头
+          // Table header
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
@@ -526,20 +526,20 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '币种/最后活跃',
+                    'Token/Last Active',
                     style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                 ),
                 Expanded(
                   child: Text(
-                    '余额/总买入',
+                    'Balance/Total Buy',
                     style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     textAlign: TextAlign.right,
                   ),
                 ),
                 Expanded(
                   child: Text(
-                    '总利润与',
+                    'Profit/Loss',
                     style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     textAlign: TextAlign.right,
                   ),
@@ -692,7 +692,7 @@ class _TraderDetailScreenState extends State<TraderDetailScreen>
             ),
             child: const Center(
               child: Text(
-                '立即跟单',
+                'Copy Now',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,

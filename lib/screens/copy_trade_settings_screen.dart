@@ -30,8 +30,27 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
   final FocusNode _positionFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
 
-  // Track layout height to prevent rebuilds
-  double? _cachedHeight;
+  @override
+  void initState() {
+    super.initState();
+    // Auto-scroll to focused input when keyboard appears
+    _amountFocus.addListener(_scrollToFocusedField);
+    _positionFocus.addListener(_scrollToFocusedField);
+  }
+
+  void _scrollToFocusedField() {
+    if (_amountFocus.hasFocus || _positionFocus.hasFocus) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            200,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+  }
 
   // 钱包列表
   final List<Map<String, dynamic>> _wallets = [
@@ -80,12 +99,9 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
   bool _autoApprove = true;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
+    _amountFocus.removeListener(_scrollToFocusedField);
+    _positionFocus.removeListener(_scrollToFocusedField);
     _amountController.dispose();
     _positionCountController.dispose();
     _slippageController.dispose();
@@ -247,44 +263,37 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Cache the initial screen height to prevent layout changes
-    _cachedHeight ??= MediaQuery.of(context).size.height -
-                     (MediaQuery.of(context).padding.top + kToolbarHeight);
-
     return GestureDetector(
       onTap: _unfocusAll,
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: _kBackgroundColor,
-        resizeToAvoidBottomInset: false, // Completely ignore keyboard
+        resizeToAvoidBottomInset: true,
         appBar: _buildAppBar(),
-        body: SizedBox(
-          height: _cachedHeight, // Fixed height - never changes
-          child: Column(
-            children: [
-              // Scrollable content with fixed height
-              Expanded(
-                child: ListView(
-                  controller: _scrollController,
-                  physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 16),
-                  children: [
-                    // 1. Target wallet address
-                    _buildSection1(),
-                    // 2. Buy settings
-                    _buildSection2(),
-                    // 3. Sell settings
-                    _buildSection3(),
-                    // Filter settings
-                    _buildFilterSection(),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+        body: Column(
+          children: [
+            // Scrollable content - inputs can scroll into view when keyboard appears
+            Expanded(
+              child: ListView(
+                controller: _scrollController,
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 16),
+                children: [
+                  // 1. Target wallet address
+                  _buildSection1(),
+                  // 2. Buy settings
+                  _buildSection2(),
+                  // 3. Sell settings
+                  _buildSection3(),
+                  // Filter settings
+                  _buildFilterSection(),
+                  const SizedBox(height: 20),
+                ],
               ),
-              // Bottom button - always at bottom
-              _buildBottomButton(),
-            ],
-          ),
+            ),
+            // Bottom button
+            _buildBottomButton(),
+          ],
         ),
       ),
     );

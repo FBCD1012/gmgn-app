@@ -621,7 +621,6 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen>
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: _kBorderColor),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
                       Expanded(

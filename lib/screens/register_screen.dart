@@ -120,6 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _emailController,
                   hintText: 'Enter email (Gmail or Outlook recommended)',
                   keyboardType: TextInputType.emailAddress,
+                  onChanged: (_) => _validateEmail(),
                   backgroundColor: const Color(0xFF1A1A1A),
                   textColor: Colors.white,
                   hintColor: Colors.grey.shade600,

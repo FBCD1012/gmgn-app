@@ -121,6 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailController,
                   hintText: 'Enter email',
                   keyboardType: TextInputType.emailAddress,
+                  onChanged: (_) => _validateEmail(),
                   backgroundColor: const Color(0xFF1C1C1E),
                   textColor: Colors.white,
                   hintColor: const Color(0xFF8E8E93),

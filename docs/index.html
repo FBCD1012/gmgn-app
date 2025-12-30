@@ -71,25 +71,38 @@
       letter-spacing: 2px;
     }
 
-    /* Spinner */
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(92, 225, 214, 0.1);
-      border-top-color: #5CE1D6;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+    /* Progress Bar Container */
+    .progress-container {
+      width: 200px;
+      height: 4px;
+      background-color: rgba(92, 225, 214, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    /* Progress Bar Fill */
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #5CE1D6, #4ECDC4);
+      border-radius: 2px;
+      transition: width 0.3s ease-out;
     }
 
     /* Loading Text */
     .loading-text {
       color: #666;
+      font-size: 13px;
+      margin-top: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* Progress Percentage */
+    .loading-percent {
+      color: #5CE1D6;
       font-size: 14px;
-      margin-top: 20px;
+      margin-top: 12px;
+      font-weight: 500;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
@@ -105,19 +118,84 @@
   <!-- Loading Screen -->
   <div class="loading-container" id="loading">
     <div class="loading-logo">GMGN</div>
-    <div class="spinner"></div>
-    <div class="loading-text">Loading...</div>
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="loading-percent" id="loadingPercent">0%</div>
+    <div class="loading-text" id="loadingText">Initializing...</div>
   </div>
 
-  <script src="flutter_bootstrap.js" async></script>
-
   <script>
+    // Progress tracking
+    let currentProgress = 0;
+    const progressBar = document.getElementById('progressBar');
+    const loadingPercent = document.getElementById('loadingPercent');
+    const loadingText = document.getElementById('loadingText');
+
+    function updateProgress(percent, text) {
+      // Smooth progress (never go backwards)
+      if (percent > currentProgress) {
+        currentProgress = percent;
+        progressBar.style.width = percent + '%';
+        loadingPercent.textContent = Math.round(percent) + '%';
+      }
+      if (text) {
+        loadingText.textContent = text;
+      }
+    }
+
+    // Simulate initial progress while loading flutter_bootstrap.js
+    let fakeProgress = 0;
+    const fakeInterval = setInterval(() => {
+      if (fakeProgress < 15) {
+        fakeProgress += 1;
+        updateProgress(fakeProgress, 'Loading resources...');
+      }
+    }, 100);
+
+    // Load Flutter with progress tracking
+    const script = document.createElement('script');
+    script.src = 'flutter_bootstrap.js';
+    script.async = true;
+
+    script.onload = function() {
+      clearInterval(fakeInterval);
+      updateProgress(20, 'Initializing Flutter...');
+
+      // Flutter loader events
+      if (window._flutter && window._flutter.loader) {
+        window._flutter.loader.load({
+          onEntrypointLoaded: async function(engineInitializer) {
+            updateProgress(40, 'Loading engine...');
+
+            const appRunner = await engineInitializer.initializeEngine({
+              onProgress: function(loadedBytes, totalBytes) {
+                if (totalBytes > 0) {
+                  const engineProgress = 40 + (loadedBytes / totalBytes) * 40;
+                  updateProgress(engineProgress, 'Loading app...');
+                }
+              }
+            });
+
+            updateProgress(85, 'Starting app...');
+            await appRunner.runApp();
+            updateProgress(100, 'Ready!');
+          }
+        });
+      }
+    };
+
+    document.head.appendChild(script);
+
     // Hide loading screen when Flutter is ready
     window.addEventListener('flutter-first-frame', function() {
-      document.body.classList.add('flutter-ready');
+      updateProgress(100, 'Ready!');
       setTimeout(function() {
-        document.getElementById('loading').remove();
-      }, 300);
+        document.body.classList.add('flutter-ready');
+        setTimeout(function() {
+          document.getElementById('loading').remove();
+        }, 300);
+      }, 200);
     });
   </script>
 </body>

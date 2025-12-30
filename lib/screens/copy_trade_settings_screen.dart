@@ -30,6 +30,9 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
   final FocusNode _positionFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
 
+  // Track layout height to prevent rebuilds
+  double? _cachedHeight;
+
   // 钱包列表
   final List<Map<String, dynamic>> _wallets = [
     {'name': 'Wallet1', 'balance': 0.0},
@@ -244,41 +247,44 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Cache the initial screen height to prevent layout changes
+    _cachedHeight ??= MediaQuery.of(context).size.height -
+                     (MediaQuery.of(context).padding.top + kToolbarHeight);
+
     return GestureDetector(
       onTap: _unfocusAll,
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: _kBackgroundColor,
-        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomInset: false, // Completely ignore keyboard
         appBar: _buildAppBar(),
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            return Column(
-              children: [
-                // Scrollable content
-                Expanded(
-                  child: ListView(
-                    controller: _scrollController,
-                    physics: const ClampingScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 16),
-                    children: [
-                      // 1. Target wallet address
-                      _buildSection1(),
-                      // 2. Buy settings
-                      _buildSection2(),
-                      // 3. Sell settings
-                      _buildSection3(),
-                      // Filter settings
-                      _buildFilterSection(),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+        body: SizedBox(
+          height: _cachedHeight, // Fixed height - never changes
+          child: Column(
+            children: [
+              // Scrollable content with fixed height
+              Expanded(
+                child: ListView(
+                  controller: _scrollController,
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 16),
+                  children: [
+                    // 1. Target wallet address
+                    _buildSection1(),
+                    // 2. Buy settings
+                    _buildSection2(),
+                    // 3. Sell settings
+                    _buildSection3(),
+                    // Filter settings
+                    _buildFilterSection(),
+                    const SizedBox(height: 20),
+                  ],
                 ),
-                // Bottom button - always at bottom
-                _buildBottomButton(),
-              ],
-            );
-          },
+              ),
+              // Bottom button - always at bottom
+              _buildBottomButton(),
+            ],
+          ),
         ),
       ),
     );

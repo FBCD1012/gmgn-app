@@ -95,47 +95,55 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
 
   @override
   Widget build(BuildContext context) {
-    // 获取底部安全区域高度
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final bottomButtonHeight = 50 + 32 + bottomPadding; // button + padding + safe area
+    // 获取键盘高度和安全区域
+    final mediaQuery = MediaQuery.of(context);
+    final keyboardHeight = mediaQuery.viewInsets.bottom;
+    final bottomPadding = mediaQuery.padding.bottom;
+    final isKeyboardOpen = keyboardHeight > 0;
 
     return GestureDetector(
       onTap: _unfocusAll,
+      behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: _kBackgroundColor,
-        resizeToAvoidBottomInset: true,
+        // 关闭自动调整，手动处理
+        resizeToAvoidBottomInset: false,
         appBar: _buildAppBar(),
-        body: Stack(
-          children: [
-            // 可滚动内容
-            Positioned.fill(
-              bottom: bottomButtonHeight,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. 跟单钱包地址
-                    _buildSection1(),
-                    // 2. 跟买设置
-                    _buildSection2(),
-                    // 3. 卖出设置
-                    _buildSection3(),
-                    // 过滤设置
-                    _buildFilterSection(),
-                    const SizedBox(height: 20),
-                  ],
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // 可滚动内容
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    bottom: isKeyboardOpen ? keyboardHeight : 0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. 跟单钱包地址
+                      _buildSection1(),
+                      // 2. 跟买设置
+                      _buildSection2(),
+                      // 3. 卖出设置
+                      _buildSection3(),
+                      // 过滤设置
+                      _buildFilterSection(),
+                      // 底部留白给按钮
+                      SizedBox(height: 82 + bottomPadding),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            // 底部按钮 - 固定在底部
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildBottomButton(),
-            ),
-          ],
+            ],
+          ),
+        ),
+        // 底部按钮用 bottomSheet 固定
+        bottomSheet: Container(
+          color: _kBackgroundColor,
+          child: _buildBottomButton(),
         ),
       ),
     );

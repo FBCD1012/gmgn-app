@@ -81,32 +81,20 @@ class MockApi {
     return ApiResponse.success(newUser);
   }
 
-  /// 第三方登录
+  /// 第三方登录（仅模拟请求，不存储）
   Future<ApiResponse<User>> socialLogin(String provider) async {
+    // 模拟第三方登录请求延迟
     await Future.delayed(const Duration(milliseconds: 1200));
 
-    // 使用固定的第三方登录邮箱（避免每次都创建新用户）
+    // 返回模拟用户，不存储到数组
     final email = '${provider.toLowerCase()}_user@example.com';
-    final emailLower = email.toLowerCase();
-
-    // 如果用户已存在，直接返回
-    if (_registeredUsers.containsKey(emailLower)) {
-      return ApiResponse.success(_registeredUsers[emailLower]!);
-    }
-
-    // 创建新的第三方登录用户
-    final newUser = User(
+    return ApiResponse.success(User(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
       email: email,
       nickname: '$provider User',
       avatar: 'https://api.dicebear.com/7.x/pixel-art/png?seed=$email',
       createdAt: DateTime.now(),
-    );
-
-    // 存储到已注册用户列表
-    _registeredUsers[emailLower] = newUser;
-
-    return ApiResponse.success(newUser);
+    ));
   }
 
   // ============ 钱包相关 API ============

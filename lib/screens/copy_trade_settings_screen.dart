@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/app_state.dart';
 import '../models/copy_trade.dart';
+import '../widgets/native_input.dart';
 
 const Color _kPrimaryGreen = Color(0xFF00D26A);
 const Color _kBackgroundColor = Color(0xFF000000); // Pure black
@@ -794,18 +795,17 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                       Expanded(
                         child: _slippageAuto
                             ? Text('Custom', style: TextStyle(fontSize: 14, color: Colors.grey[500]))
-                            : TextField(
-                                controller: _slippageController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                textInputAction: TextInputAction.done,
-                                onEditingComplete: _unfocusAll,
-                                style: const TextStyle(fontSize: 14, color: Colors.white),
-                                decoration: InputDecoration(
+                            : SizedBox(
+                                height: 20,
+                                child: NativeInput(
+                                  controller: _slippageController,
                                   hintText: 'Custom',
-                                  hintStyle: TextStyle(color: Colors.grey[500]),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  onEditingComplete: _unfocusAll,
+                                  backgroundColor: _kBorderColor,
+                                  textColor: Colors.white,
+                                  hintColor: Colors.grey[500],
+                                  fontSize: 14,
                                 ),
                               ),
                       ),
@@ -877,16 +877,15 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                             Expanded(
                               child: _gasAverage
                                   ? Text(_gasController.text, style: const TextStyle(fontSize: 13, color: Colors.white))
-                                  : TextField(
-                                      controller: _gasController,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      textInputAction: TextInputAction.done,
-                                      onEditingComplete: _unfocusAll,
-                                      style: const TextStyle(fontSize: 13, color: Colors.white),
-                                      decoration: const InputDecoration(
-                                        border: InputBorder.none,
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.zero,
+                                  : SizedBox(
+                                      height: 20,
+                                      child: NativeInput(
+                                        controller: _gasController,
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                        onEditingComplete: _unfocusAll,
+                                        backgroundColor: _kBorderColor,
+                                        textColor: Colors.white,
+                                        fontSize: 13,
                                       ),
                                     ),
                             ),
@@ -913,18 +912,17 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _maxGasController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        textInputAction: TextInputAction.done,
-                        onEditingComplete: _unfocusAll,
-                        style: const TextStyle(fontSize: 13, color: Colors.white),
-                        decoration: InputDecoration(
+                      child: SizedBox(
+                        height: 20,
+                        child: NativeInput(
+                          controller: _maxGasController,
                           hintText: 'Custom',
-                          hintStyle: TextStyle(color: Colors.grey[500]),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onEditingComplete: _unfocusAll,
+                          backgroundColor: _kInputColor,
+                          textColor: Colors.white,
+                          hintColor: Colors.grey[500],
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -1022,19 +1020,18 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              textInputAction: TextInputAction.done,
-              onEditingComplete: _unfocusAll,
-              style: const TextStyle(color: Colors.white, fontSize: 15),
-              decoration: InputDecoration(
+            child: SizedBox(
+              height: 20,
+              child: NativeInput(
+                controller: controller,
                 hintText: hint,
-                hintStyle: TextStyle(color: Colors.grey[600], fontSize: 15),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
+                focusNode: focusNode,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onEditingComplete: _unfocusAll,
+                backgroundColor: _kInputColor,
+                textColor: Colors.white,
+                hintColor: Colors.grey[600],
+                fontSize: 15,
               ),
             ),
           ),

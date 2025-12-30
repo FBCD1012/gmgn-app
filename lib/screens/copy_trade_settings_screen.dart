@@ -238,16 +238,26 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
     });
   }
 
+  double _lastBottomInset = 0;
+
   @override
   void didChangeMetrics() {
-    // 键盘收起时，强制刷新布局
     final bottomInset = WidgetsBinding.instance.platformDispatcher.views.first.viewInsets.bottom;
-    if (bottomInset == 0) {
-      // 键盘已收起，触发重建
+
+    // 检测键盘从打开变为关闭
+    if (_lastBottomInset > 0 && bottomInset == 0) {
+      // 键盘刚收起，强制取消焦点并刷新布局
       if (mounted) {
-        setState(() {});
+        // 延迟执行，等待系统完成键盘动画
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            FocusScope.of(context).unfocus();
+            setState(() {});
+          }
+        });
       }
     }
+    _lastBottomInset = bottomInset;
   }
 
   void _unfocusAll() {
@@ -256,8 +266,6 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-
     return GestureDetector(
       onTap: _unfocusAll,
       behavior: HitTestBehavior.opaque,
@@ -1035,22 +1043,6 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> with 
             ),
           ),
           Text(suffix, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRuleInput(String label, String value, String suffix) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: _kInputColor, borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white)),
-          const SizedBox(width: 4),
-          Text(suffix, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
         ],
       ),
     );

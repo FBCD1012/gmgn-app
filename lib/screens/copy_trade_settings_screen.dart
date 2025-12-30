@@ -213,17 +213,30 @@ class _CopyTradeSettingsScreenState extends State<CopyTradeSettingsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: _kCardColor,
         title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            suffixText: suffix,
-            suffixStyle: TextStyle(color: Colors.grey[500]),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey[600]!)),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _kPrimaryGreen)),
+        content: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: const Color(0xFF252525),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade700),
           ),
-          autofocus: true,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: NativeInput(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  backgroundColor: const Color(0xFF252525),
+                  textColor: Colors.white,
+                  hintColor: Colors.grey.shade500,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(suffix, style: TextStyle(color: Colors.grey[500])),
+            ],
+          ),
         ),
         actions: [
           TextButton(

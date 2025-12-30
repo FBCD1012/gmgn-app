@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import '../widgets/native_input.dart';
 
 const Color _kPrimaryGreen = Color(0xFF00D26A);
 const Color _kBackgroundColor = Color(0xFF000000); // Pure black
@@ -620,22 +621,21 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen>
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: _kBorderColor),
                   ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
                       Expanded(
-                        child: TextField(
+                        child: NativeInput(
                           controller: _amountController,
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Enter amount',
-                            hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
+                          hintText: 'Enter amount',
                           keyboardType: TextInputType.number,
+                          backgroundColor: _kCardColor,
+                          textColor: Colors.white,
+                          hintColor: Colors.grey.shade600,
+                          fontSize: 14,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       const Text('BNB', style: TextStyle(fontSize: 14, color: Colors.white)),
                     ],
                   ),

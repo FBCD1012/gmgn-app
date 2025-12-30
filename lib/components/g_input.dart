@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
+import '../widgets/native_input.dart';
 
 /// 下拉选择器
 class GDropdown extends StatelessWidget {
@@ -134,17 +135,14 @@ class GSearchInput extends StatelessWidget {
           const Icon(Icons.search, size: 18, color: GColors.textTertiary),
           const SizedBox(width: 8),
           Expanded(
-            child: TextField(
+            child: NativeInput(
               controller: controller,
               onChanged: onChanged,
-              style: GTextStyle.body,
-              decoration: InputDecoration(
-                hintText: placeholder ?? '搜索',
-                hintStyle: GTextStyle.caption,
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
+              hintText: placeholder ?? 'Search',
+              backgroundColor: GColors.bgInput,
+              textColor: GColors.textPrimary,
+              hintColor: GColors.textTertiary,
+              fontSize: 14,
             ),
           ),
           const SizedBox(width: 12),
@@ -184,21 +182,14 @@ class GNumberInput extends StatelessWidget {
         children: [
           SizedBox(
             width: width,
-            child: TextField(
+            child: NativeInput(
               controller: TextEditingController(text: value),
               onChanged: onChanged,
               keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: GColors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
+              backgroundColor: GColors.bgElevated,
+              textColor: GColors.textPrimary,
+              hintColor: GColors.textTertiary,
+              fontSize: 13,
             ),
           ),
           if (suffix != null) ...[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_state.dart';
+import '../widgets/native_input.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -115,25 +116,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: const Color(0xFF1C1C1E),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: TextField(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: NativeInput(
                   controller: _emailController,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
+                  hintText: 'Enter email',
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter email',
-                    hintStyle: TextStyle(
-                      color: Color(0xFF8E8E93),
-                      fontSize: 16,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
+                  backgroundColor: const Color(0xFF1C1C1E),
+                  textColor: Colors.white,
+                  hintColor: const Color(0xFF8E8E93),
+                  fontSize: 16,
                 ),
               ),
               const SizedBox(height: 12),

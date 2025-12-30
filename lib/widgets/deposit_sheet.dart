@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../providers/wallet_state.dart';
 import '../providers/app_state.dart';
+import 'native_input.dart';
 
 class DepositSheet extends StatefulWidget {
   const DepositSheet({super.key});
@@ -116,23 +117,22 @@ class _DepositSheetState extends State<DepositSheet> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
+            Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: const Color(0xFF000000),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF333333)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: NativeInput(
+                controller: amountController,
                 hintText: 'Enter swap amount',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                filled: true,
-                fillColor: const Color(0xFF000000),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF333333)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF333333)),
-                ),
+                keyboardType: TextInputType.number,
+                backgroundColor: const Color(0xFF000000),
+                textColor: Colors.white,
+                hintColor: Colors.grey.shade600,
+                fontSize: 16,
               ),
             ),
             const SizedBox(height: 12),
